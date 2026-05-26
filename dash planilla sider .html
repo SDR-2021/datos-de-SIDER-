@@ -1,0 +1,1783 @@
+
+import React, { useState, useMemo, useEffect } from 'react';
+import { 
+  Users, 
+  MapPin, 
+  Calendar, 
+  Activity, 
+  Upload, 
+  Search, 
+  Filter, 
+  FileText, 
+  BarChart2, 
+  PieChart, 
+  Sliders, 
+  Download, 
+  RefreshCw, 
+  Sun, 
+  Moon, 
+  Check, 
+  Info,
+  ChevronLeft,
+  ChevronRight,
+  TrendingUp,
+  Map
+} from 'lucide-react';
+
+// --- DATA PRE-CARGADA (BASADA EN EL ARCHIVO DEL USUARIO) ---
+const INITIAL_DATA = [
+  {
+    id: "519",
+    nombre_comuna: "1",
+    ciudad: "Cali",
+    Comuna: "Comuna 1",
+    nombre_barrio: "Terrón Colorado",
+    zona: "Urbana",
+    sitio_atencion: "Unidad recreativa Tory Castro",
+    direccion_sitio_atencion: "CLL 19 # 4 BIS O- 50",
+    disciplina_y_o_actividad: "ACUATICA",
+    Lunes: "",
+    Martes: "Martes",
+    Miercoles: "",
+    Jueves: "",
+    Viernes: "",
+    sabado: "",
+    Domingo: "",
+    hora_inicio: "9:00.am",
+    hora_fin: "10:00.am",
+    corregimiento: "",
+    vereda: "",
+    programa: "ActivaMente",
+    MONITOR: "PAULO PLAZA"
+  },
+  {
+    id: "520",
+    nombre_comuna: "1",
+    ciudad: "Cali",
+    Comuna: "Comuna 1",
+    nombre_barrio: "Terrón Colorado",
+    zona: "Urbana",
+    sitio_atencion: "CASA DE LA PAZ - TERRON COLORADO",
+    direccion_sitio_atencion: "Calle 21B oeste # 6-01",
+    disciplina_y_o_actividad: "FUNCIONAL",
+    Lunes: "",
+    Martes: "",
+    Miercoles: "Miercoles",
+    Jueves: "Jueves",
+    Viernes: "",
+    sabado: "Sabado",
+    Domingo: "",
+    hora_inicio: "7:00.am",
+    hora_fin: "8:00.am",
+    corregimiento: "",
+    vereda: "",
+    programa: "ActivaMente",
+    MONITOR: "PAULO PLAZA"
+  },
+  {
+    id: "522",
+    nombre_comuna: "1",
+    ciudad: "Cali",
+    Comuna: "Comuna 1",
+    nombre_barrio: "Terrón Colorado",
+    zona: "Urbana",
+    sitio_atencion: "Unidad recreativa Tory Castro",
+    direccion_sitio_atencion: "CLL 19 # 4 BIS O- 50",
+    disciplina_y_o_actividad: "ACUATICA",
+    Lunes: "",
+    Martes: "",
+    Miercoles: "Miercoles",
+    Jueves: "",
+    Viernes: "",
+    sabado: "",
+    Domingo: "",
+    hora_inicio: "7:00.pm",
+    hora_fin: "8:00.pm",
+    corregimiento: "",
+    vereda: "",
+    programa: "ActivaMente",
+    MONITOR: "PAULO PLAZA"
+  },
+  {
+    id: "523",
+    nombre_comuna: "1",
+    ciudad: "Cali",
+    Comuna: "Comuna 1",
+    nombre_barrio: "Aguacatal",
+    zona: "Urbana",
+    sitio_atencion: "COLISEO CUBIERTO BAJO AGUACATAL",
+    direccion_sitio_atencion: "Av 9 Oeste Con Calle 13 A Oeste",
+    disciplina_y_o_actividad: "FUNCIONAL",
+    Lunes: "Lunes",
+    Martes: "",
+    Miercoles: "Miercoles",
+    Jueves: "",
+    Viernes: "Viernes",
+    sabado: "",
+    Domingo: "",
+    hora_inicio: "6:00.am",
+    hora_fin: "7:00.am",
+    corregimiento: "",
+    vereda: "",
+    programa: "ActivaMente",
+    MONITOR: "PAULO PLAZA"
+  },
+  {
+    id: "777",
+    nombre_comuna: "50",
+    ciudad: "Cali",
+    Comuna: "Comuna 50",
+    nombre_barrio: "Pance",
+    zona: "Rural",
+    sitio_atencion: "IE SANTO DOMINGO",
+    direccion_sitio_atencion: "PUEBLO PANCE CABECERA",
+    disciplina_y_o_actividad: "SESIONES LUDICOPEDAGOGICAS",
+    Lunes: "",
+    Martes: "Martes",
+    Miercoles: "",
+    Jueves: "",
+    Viernes: "",
+    sabado: "",
+    Domingo: "",
+    hora_inicio: "7:00.am",
+    hora_fin: "9:00.am",
+    corregimiento: "Pance",
+    vereda: "Pance (Cabecera)",
+    programa: "Poblacion y Etnias",
+    MONITOR: "ELSY FLOR"
+  },
+  {
+    id: "778",
+    nombre_comuna: "50",
+    ciudad: "Cali",
+    Comuna: "Comuna 50",
+    nombre_barrio: "Pance",
+    zona: "Rural",
+    sitio_atencion: "IE SANTO DOMINGO",
+    direccion_sitio_atencion: "PUEBLO PANCE CABECERA",
+    disciplina_y_o_actividad: "SESIONES LUDICOPEDAGOGICAS",
+    Lunes: "",
+    Martes: "Martes",
+    Miercoles: "",
+    Jueves: "",
+    Viernes: "",
+    sabado: "",
+    Domingo: "",
+    hora_inicio: "10:45.am",
+    hora_fin: "12:45.pm",
+    corregimiento: "Pance",
+    vereda: "Pance (Cabecera)",
+    programa: "Poblacion y Etnias",
+    MONITOR: "ELSY FLOR"
+  },
+  {
+    id: "780",
+    nombre_comuna: "50",
+    ciudad: "Cali",
+    Comuna: "Comuna 50",
+    nombre_barrio: "Los Andes",
+    zona: "Rural",
+    sitio_atencion: "CASA FAMILIA REALPE",
+    direccion_sitio_atencion: "VEREDA QUEBRADA HONDA - SECTOR PARAISO",
+    disciplina_y_o_actividad: "SESIONES LUDICOPEDAGOGICAS",
+    Lunes: "",
+    Martes: "",
+    Miercoles: "",
+    Jueves: "",
+    Viernes: "Viernes",
+    sabado: "",
+    Domingo: "",
+    hora_inicio: "4:00.pm",
+    hora_fin: "6:00.pm",
+    corregimiento: "Los Andes",
+    vereda: "",
+    programa: "Poblacion y Etnias",
+    MONITOR: "ELSY FLOR"
+  },
+  {
+    id: "586",
+    nombre_comuna: "50",
+    ciudad: "Cali",
+    Comuna: "Comuna 50",
+    nombre_barrio: "Pance",
+    zona: "Rural",
+    sitio_atencion: "CASA FAMILIA CAMPO",
+    direccion_sitio_atencion: "Corregimiento pance",
+    disciplina_y_o_actividad: "SESIONES LUDICOPEDAGOGICAS",
+    Lunes: "",
+    Martes: "",
+    Miercoles: "",
+    Jueves: "Jueves",
+    Viernes: "",
+    sabado: "",
+    Domingo: "",
+    hora_inicio: "5:30.pm",
+    hora_fin: "7:30.pm",
+    corregimiento: "Pance",
+    vereda: "La Vorágine",
+    programa: "Poblacion y Etnias",
+    MONITOR: "ELSY FLOR"
+  },
+  {
+    id: "601",
+    nombre_comuna: "20",
+    ciudad: "Cali",
+    Comuna: "Comuna 20",
+    nombre_barrio: "Siloé",
+    zona: "Urbana",
+    sitio_atencion: "Cancha El Descanso",
+    direccion_sitio_atencion: "Diagonal 51 Oeste",
+    disciplina_y_o_actividad: "FUTBOL DE SALON",
+    Lunes: "Lunes",
+    Martes: "",
+    Miercoles: "Miercoles",
+    Jueves: "",
+    Viernes: "Viernes",
+    sabado: "",
+    Domingo: "",
+    hora_inicio: "4:00.pm",
+    hora_fin: "6:00.pm",
+    corregimiento: "",
+    vereda: "",
+    programa: "Semilleros Deportivos",
+    MONITOR: "CARLOS INSUASTY"
+  },
+  {
+    id: "602",
+    nombre_comuna: "20",
+    ciudad: "Cali",
+    Comuna: "Comuna 20",
+    nombre_barrio: "Siloé",
+    zona: "Urbana",
+    sitio_atencion: "La Estrella - Mirador",
+    direccion_sitio_atencion: "Carrera 40 Oeste",
+    disciplina_y_o_actividad: "AEROBICOS",
+    Lunes: "",
+    Martes: "Martes",
+    Miercoles: "",
+    Jueves: "Jueves",
+    Viernes: "",
+    sabado: "",
+    Domingo: "Domingo",
+    hora_inicio: "7:00.am",
+    hora_fin: "8:30.am",
+    corregimiento: "",
+    vereda: "",
+    programa: "Canas y Ganas",
+    MONITOR: "MARIA EUGENIA"
+  },
+  {
+    id: "603",
+    nombre_comuna: "15",
+    ciudad: "Cali",
+    Comuna: "Comuna 15",
+    nombre_barrio: "El Vallado",
+    zona: "Urbana",
+    sitio_atencion: "Polideportivo El Vallado",
+    direccion_sitio_atencion: "Calle 54 con Carrera 41B",
+    disciplina_y_o_actividad: "BALONCESTO",
+    Lunes: "Lunes",
+    Martes: "",
+    Miercoles: "Miercoles",
+    Jueves: "",
+    Viernes: "Viernes",
+    sabado: "",
+    Domingo: "",
+    hora_inicio: "3:00.pm",
+    hora_fin: "5:00.pm",
+    corregimiento: "",
+    vereda: "",
+    programa: "Semilleros Deportivos",
+    MONITOR: "JEISON RIVAS"
+  },
+  {
+    id: "604",
+    nombre_comuna: "15",
+    ciudad: "Cali",
+    Comuna: "Comuna 15",
+    nombre_barrio: "El Vallado",
+    zona: "Urbana",
+    sitio_atencion: "Polideportivo El Vallado",
+    direccion_sitio_atencion: "Calle 54 con Carrera 41B",
+    disciplina_y_o_actividad: "FUNCIONAL",
+    Lunes: "",
+    Martes: "Martes",
+    Miercoles: "",
+    Jueves: "Jueves",
+    Viernes: "",
+    sabado: "",
+    Domingo: "",
+    hora_inicio: "7:00.pm",
+    hora_fin: "8:30.pm",
+    programa: "ActivaMente",
+    MONITOR: "JEISON RIVAS"
+  },
+  {
+    id: "605",
+    nombre_comuna: "21",
+    ciudad: "Cali",
+    Comuna: "Comuna 21",
+    nombre_barrio: "Desepaz",
+    zona: "Urbana",
+    sitio_atencion: "Kiosko de Desepaz",
+    direccion_sitio_atencion: "Carrera 23 # 120-15",
+    disciplina_y_o_actividad: "YOGA Y ESTIRAMIENTO",
+    Lunes: "",
+    Martes: "",
+    Miercoles: "Miercoles",
+    Jueves: "",
+    Viernes: "Viernes",
+    sabado: "",
+    Domingo: "",
+    hora_inicio: "8:00.am",
+    hora_fin: "9:30.am",
+    corregimiento: "",
+    vereda: "",
+    programa: "ActivaMente",
+    MONITOR: "LINA MARCELA GUERRERO"
+  },
+  {
+    id: "606",
+    nombre_comuna: "21",
+    ciudad: "Cali",
+    Comuna: "Comuna 21",
+    nombre_barrio: "Desepaz",
+    zona: "Urbana",
+    sitio_atencion: "Polideportivo Desepaz",
+    direccion_sitio_atencion: "Carrera 23 # 120",
+    disciplina_y_o_actividad: "BALONCESTO",
+    Lunes: "Lunes",
+    Martes: "",
+    Miercoles: "Miercoles",
+    Jueves: "",
+    Viernes: "",
+    sabado: "Sabado",
+    Domingo: "",
+    hora_inicio: "9:00.am",
+    hora_fin: "11:00.am",
+    corregimiento: "",
+    vereda: "",
+    programa: "Semilleros Deportivos",
+    MONITOR: "LINA MARCELA GUERRERO"
+  },
+  {
+    id: "607",
+    nombre_comuna: "3",
+    ciudad: "Cali",
+    Comuna: "Comuna 3",
+    nombre_barrio: "San Antonio",
+    zona: "Urbana",
+    sitio_atencion: "Colina de San Antonio",
+    direccion_sitio_atencion: "Carrera 10 con Calle 3 Oeste",
+    disciplina_y_o_actividad: "RECREACION ACTIVA",
+    Lunes: "",
+    Martes: "Martes",
+    Miercoles: "",
+    Jueves: "Jueves",
+    Viernes: "",
+    sabado: "Sabado",
+    Domingo: "",
+    hora_inicio: "4:00.pm",
+    hora_fin: "5:30.pm",
+    corregimiento: "",
+    vereda: "",
+    programa: "Deporte Comunitario",
+    MONITOR: "ANDRES SANCHEZ"
+  },
+  {
+    id: "608",
+    nombre_comuna: "3",
+    ciudad: "Cali",
+    Comuna: "Comuna 3",
+    nombre_barrio: "El Peñón",
+    zona: "Urbana",
+    sitio_atencion: "Parque del Peñón",
+    direccion_sitio_atencion: "Carrera 3 con Calle 2",
+    disciplina_y_o_actividad: "GIMNASIA PASIVA",
+    Lunes: "Lunes",
+    Martes: "",
+    Miercoles: "Miercoles",
+    Jueves: "",
+    Viernes: "Viernes",
+    sabado: "",
+    Domingo: "",
+    hora_inicio: "7:30.am",
+    hora_fin: "9:00.am",
+    corregimiento: "",
+    vereda: "",
+    programa: "Canas y Ganas",
+    MONITOR: "ANDRES SANCHEZ"
+  }
+];
+
+export default function App() {
+  const [data, setData] = useState(INITIAL_DATA);
+  const [fileName, setFileName] = useState("Ejemplo de Parrilla (Pre-cargada)");
+  const [fileStats, setFileStats] = useState({ size: "N/A", rows: INITIAL_DATA.length });
+  const [darkMode, setDarkMode] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview"); // overview, coverage, grid, monitors
+
+  // Filtros de estado
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedPrograma, setSelectedPrograma] = useState("Todos");
+  const [selectedComuna, setSelectedComuna] = useState("Todas");
+  const [selectedZona, setSelectedZona] = useState("Todas");
+  const [selectedMonitor, setSelectedMonitor] = useState("Todos");
+  const [selectedDia, setSelectedDia] = useState("Todos");
+  const [selectedDisciplina, setSelectedDisciplina] = useState("Todas");
+
+  // Monitor seleccionado en la pestaña de Monitores
+  const [monitorInFocus, setMonitorInFocus] = useState("");
+
+  // Paginación para la tabla
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  // Alertas / Mensajes de Éxito
+  const [toastMessage, setToastMessage] = useState(null);
+
+  const showToast = (message, type = "success") => {
+    setToastMessage({ message, type });
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 4000);
+  };
+
+  // --- PARSEADOR DE CSV ROBUSTO ---
+  const handleCSVUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setFileName(file.name);
+    const sizeInKB = (file.size / 1024).toFixed(1);
+    setFileStats(prev => ({ ...prev, size: `${sizeInKB} KB` }));
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target.result;
+        const parsed = parseCSVText(text);
+        if (parsed && parsed.length > 0) {
+          setData(parsed);
+          setFileStats(prev => ({ ...prev, rows: parsed.length }));
+          showToast(`¡Carga exitosa! Se importaron ${parsed.length} registros.`, "success");
+          
+          // Resetear filtros
+          setSelectedPrograma("Todos");
+          setSelectedComuna("Todas");
+          setSelectedZona("Todas");
+          setSelectedMonitor("Todos");
+          setSelectedDia("Todos");
+          setSelectedDisciplina("Todas");
+          setSearchTerm("");
+          setCurrentPage(1);
+        } else {
+          showToast("El archivo no contiene un formato de parrilla válido.", "error");
+        }
+      } catch (err) {
+        console.error(err);
+        showToast("Error procesando el archivo CSV. Asegúrate de que sea un archivo CSV válido.", "error");
+      }
+    };
+    reader.readAsText(file, "UTF-8");
+  };
+
+  const parseCSVText = (text) => {
+    const lines = [];
+    let line = "";
+    let inQuotes = false;
+
+    // Procesar caracter por caracter para soportar saltos de línea dentro de comillas
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if ((char === '\n' || char === '\r') && !inQuotes) {
+        if (line.trim()) lines.push(line);
+        line = "";
+      } else {
+        line += char;
+      }
+    }
+    if (line.trim()) lines.push(line);
+
+    if (lines.length < 2) return [];
+
+    // Detectar delimitador (coma o punto y coma)
+    const headerLine = lines[0];
+    const commaCount = (headerLine.match(/,/g) || []).length;
+    const semiCount = (headerLine.match(/;/g) || []).length;
+    const delimiter = commaCount >= semiCount ? ',' : ';';
+
+    const parseLine = (l) => {
+      const result = [];
+      let cell = "";
+      let inQ = false;
+      for (let j = 0; j < l.length; j++) {
+        const c = l[j];
+        if (c === '"') {
+          inQ = !inQ;
+        } else if (c === delimiter && !inQ) {
+          result.push(cell.trim());
+          cell = "";
+        } else {
+          cell += c;
+        }
+      }
+      result.push(cell.trim());
+      return result;
+    };
+
+    const headers = parseLine(lines[0]).map(h => h.replace(/^"|"$/g, '').trim());
+    
+    // Normalizar headers esperados
+    const normalizedHeaders = headers.map(h => {
+      // Reemplazar tildes o caracteres especiales
+      return h.toLowerCase()
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "")
+              .replace(/ /g, "_")
+              .replace(/\//g, "_")
+              .replace(/\./g, "");
+    });
+
+    const parsedRows = [];
+    for (let k = 1; k < lines.length; k++) {
+      const cells = parseLine(lines[k]);
+      if (cells.length < headers.length) continue;
+
+      const rowObj = {};
+      headers.forEach((header, index) => {
+        let val = cells[index] ? cells[index].replace(/^"|"$/g, '').trim() : "";
+        
+        // Mapear al nombre interno estandarizado o guardar con el original
+        const norm = normalizedHeaders[index];
+        rowObj[norm] = val;
+        
+        // Mapas inversos/compatibilidad por si los headers varían
+        if (norm === "nombre_comuna" || norm === "comuna") rowObj.nombre_comuna = val;
+        if (norm === "nombre_barrio" || norm === "barrio") rowObj.nombre_barrio = val;
+        if (norm === "disciplina_y_o_actividad" || norm === "disciplina" || norm === "actividad") rowObj.disciplina_y_o_actividad = val;
+        if (norm === "sitio_atencion" || norm === "sitio") rowObj.sitio_atencion = val;
+        if (norm === "direccion_sitio_atencion" || norm === "direccion") rowObj.direccion_sitio_atencion = val;
+        if (norm === "monitor" || norm === "nombre_monitor") rowObj.MONITOR = val;
+        if (norm === "programa" || norm === "nombre_programa") rowObj.programa = val;
+        if (norm === "lunes") rowObj.Lunes = val;
+        if (norm === "martes") rowObj.Martes = val;
+        if (norm === "miercoles") rowObj.Miercoles = val;
+        if (norm === "jueves") rowObj.Jueves = val;
+        if (norm === "viernes") rowObj.Viernes = val;
+        if (norm === "sabado") rowObj.sabado = val;
+        if (norm === "domingo") rowObj.Domingo = val;
+      });
+
+      // Asegurar id
+      rowObj.id = rowObj.id || (parsedRows.length + 1).toString();
+      
+      // Intentar inferir Comuna si viene en "nombre_comuna"
+      if (!rowObj.Comuna && rowObj.nombre_comuna) {
+        rowObj.Comuna = rowObj.nombre_comuna.toLowerCase().includes("comuna") 
+          ? rowObj.nombre_comuna 
+          : `Comuna ${rowObj.nombre_comuna}`;
+      }
+      
+      // Normalizar campos vitales con fallbacks
+      rowObj.MONITOR = rowObj.MONITOR || rowObj.monitor || "No Asignado";
+      rowObj.programa = rowObj.programa || "Sin Programa";
+      rowObj.zona = rowObj.zona || (rowObj.corregimiento ? "Rural" : "Urbana");
+      rowObj.disciplina_y_o_actividad = rowObj.disciplina_y_o_actividad || "Recreación";
+      rowObj.nombre_barrio = rowObj.nombre_barrio || rowObj.corregimiento || "N/A";
+      
+      parsedRows.push(rowObj);
+    }
+    return parsedRows;
+  };
+
+  // --- FILTROS DE DATOS ---
+  const filteredData = useMemo(() => {
+    return data.filter(row => {
+      // 1. Buscador de texto (Monitor, Barrio, Disciplina, Sitio, Programa)
+      const matchesSearch = searchTerm === "" || [
+        row.MONITOR,
+        row.nombre_barrio,
+        row.disciplina_y_o_actividad,
+        row.sitio_atencion,
+        row.programa,
+        row.Comuna,
+        row.corregimiento
+      ].some(val => val && val.toLowerCase().includes(searchTerm.toLowerCase()));
+
+      // 2. Filtro Programa
+      const matchesPrograma = selectedPrograma === "Todos" || row.programa === selectedPrograma;
+
+      // 3. Filtro Comuna
+      const matchesComuna = selectedComuna === "Todas" || 
+        row.Comuna === selectedComuna || 
+        row.nombre_comuna === selectedComuna;
+
+      // 4. Filtro Zona
+      const matchesZona = selectedZona === "Todas" || 
+        (row.zona && row.zona.toLowerCase() === selectedZona.toLowerCase());
+
+      // 5. Filtro Monitor
+      const matchesMonitor = selectedMonitor === "Todos" || row.MONITOR === selectedMonitor;
+
+      // 6. Filtro Disciplina
+      const matchesDisciplina = selectedDisciplina === "Todas" || row.disciplina_y_o_actividad === selectedDisciplina;
+
+      // 7. Filtro Día de la Semana
+      let matchesDia = true;
+      if (selectedDia !== "Todos") {
+        const diaLow = selectedDia.toLowerCase();
+        if (diaLow === "lunes") matchesDia = !!row.Lunes;
+        else if (diaLow === "martes") matchesDia = !!row.Martes;
+        else if (diaLow === "miercoles") matchesDia = !!row.Miercoles;
+        else if (diaLow === "jueves") matchesDia = !!row.Jueves;
+        else if (diaLow === "viernes") matchesDia = !!row.Viernes;
+        else if (diaLow === "sabado") matchesDia = !!row.sabado;
+        else if (diaLow === "domingo") matchesDia = !!row.Domingo;
+      }
+
+      return matchesSearch && matchesPrograma && matchesComuna && matchesZona && matchesMonitor && matchesDia && matchesDisciplina;
+    });
+  }, [data, searchTerm, selectedPrograma, selectedComuna, selectedZona, selectedMonitor, selectedDia, selectedDisciplina]);
+
+  // --- OPCIONES PARA LOS COMBOS DE FILTRO ---
+  const filterOptions = useMemo(() => {
+    const programas = new Set();
+    const comunas = new Set();
+    const monitores = new Set();
+    const disciplinas = new Set();
+
+    data.forEach(row => {
+      if (row.programa) programas.add(row.programa);
+      if (row.Comuna) comunas.add(row.Comuna);
+      else if (row.nombre_comuna) comunas.add(`Comuna ${row.nombre_comuna}`);
+      
+      if (row.MONITOR) monitores.add(row.MONITOR);
+      if (row.disciplina_y_o_actividad) disciplinas.add(row.disciplina_y_o_actividad);
+    });
+
+    return {
+      programas: ["Todos", ...Array.from(programas).sort()],
+      comunas: ["Todas", ...Array.from(comunas).sort((a, b) => {
+        const numA = parseInt(a.replace(/^\D+/g, '')) || 0;
+        const numB = parseInt(b.replace(/^\D+/g, '')) || 0;
+        return numA - numB;
+      })],
+      monitores: ["Todos", ...Array.from(monitores).sort()],
+      disciplinas: ["Todas", ...Array.from(disciplinas).sort()]
+    };
+  }, [data]);
+
+  // Si cambia el set de datos, pre-seleccionar el primer monitor disponible en la pestaña
+  useEffect(() => {
+    if (filterOptions.monitores.length > 1) {
+      setMonitorInFocus(filterOptions.monitores[1]); // El primer monitor que no es "Todos"
+    }
+  }, [filterOptions]);
+
+  // --- METRICAS DE ANALISIS ---
+  const stats = useMemo(() => {
+    const totalRegistros = filteredData.length;
+    
+    // Contar sesiones semanales totales (multiplicando si ocurren varios días a la semana)
+    let totalSesionesSemanales = 0;
+    const uniqueMonitors = new Set();
+    const uniqueBarrios = new Set();
+    const uniqueComunas = new Set();
+    let ruralCount = 0;
+    let urbanCount = 0;
+
+    filteredData.forEach(row => {
+      let diasActivos = 0;
+      if (row.Lunes) diasActivos++;
+      if (row.Martes) diasActivos++;
+      if (row.Miercoles) diasActivos++;
+      if (row.Jueves) diasActivos++;
+      if (row.Viernes) diasActivos++;
+      if (row.sabado) diasActivos++;
+      if (row.Domingo) diasActivos++;
+      
+      // Si no hay días marcados pero tiene hora, contar al menos 1
+      totalSesionesSemanales += Math.max(diasActivos, 1);
+
+      if (row.MONITOR) uniqueMonitors.add(row.MONITOR);
+      if (row.nombre_barrio) uniqueBarrios.add(row.nombre_barrio);
+      if (row.Comuna) uniqueComunas.add(row.Comuna);
+
+      if (row.zona && row.zona.toLowerCase() === "rural") {
+        ruralCount++;
+      } else {
+        urbanCount++;
+      }
+    });
+
+    const totalZonas = ruralCount + urbanCount || 1;
+    const pctUrbana = Math.round((urbanCount / totalZonas) * 100);
+    const pctRural = Math.round((ruralCount / totalZonas) * 100);
+
+    return {
+      registros: totalRegistros,
+      sesionesSemanales: totalSesionesSemanales,
+      monitores: uniqueMonitors.size,
+      barrios: uniqueBarrios.size,
+      comunas: uniqueComunas.size,
+      pctUrbana,
+      pctRural,
+      ruralCount,
+      urbanCount
+    };
+  }, [filteredData]);
+
+  // --- GRAFICO 1: DISTRIBUCIÓN POR PROGRAMA ---
+  const programaChartData = useMemo(() => {
+    const counts = {};
+    filteredData.forEach(row => {
+      const p = row.programa || "Sin Programa";
+      counts[p] = (counts[p] || 0) + 1;
+    });
+
+    return Object.entries(counts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [filteredData]);
+
+  // --- GRAFICO 2: ACTIVIDAD POR DÍA DE LA SEMANA ---
+  const dayChartData = useMemo(() => {
+    const days = {
+      Lunes: 0,
+      Martes: 0,
+      Miercoles: 0,
+      Jueves: 0,
+      Viernes: 0,
+      Sábado: 0,
+      Domingo: 0
+    };
+
+    filteredData.forEach(row => {
+      if (row.Lunes) days.Lunes++;
+      if (row.Martes) days.Martes++;
+      if (row.Miercoles) days.Miercoles++;
+      if (row.Jueves) days.Jueves++;
+      if (row.Viernes) days.Viernes++;
+      if (row.sabado) days.Sábado++;
+      if (row.Domingo) days.Domingo++;
+    });
+
+    return Object.entries(days).map(([name, value]) => ({ name, value }));
+  }, [filteredData]);
+
+  // --- GRAFICO 3: TOP DISCIPLINAS/ACTIVIDADES ---
+  const disciplinaChartData = useMemo(() => {
+    const counts = {};
+    filteredData.forEach(row => {
+      const d = row.disciplina_y_o_actividad || "Recreación";
+      counts[d] = (counts[d] || 0) + 1;
+    });
+
+    return Object.entries(counts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 7); // Top 7
+  }, [filteredData]);
+
+  // --- GRAFICO 4: DISTRIBUCIÓN POR COMUNA (RANKING) ---
+  const comunaChartData = useMemo(() => {
+    const counts = {};
+    filteredData.forEach(row => {
+      const c = row.Comuna || "N/A";
+      counts[c] = (counts[c] || 0) + 1;
+    });
+
+    return Object.entries(counts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10); // Top 10 comunas
+  }, [filteredData]);
+
+  // --- AGENDA INDIVIDUAL DE MONITOR EN FOCO ---
+  const monitorSchedule = useMemo(() => {
+    if (!monitorInFocus) return [];
+    
+    // Obtener todas las sesiones asignadas a este monitor
+    const monitorRows = data.filter(row => row.MONITOR === monitorInFocus);
+    
+    // Consolidar por día de la semana
+    const scheduleByDay = {
+      Lunes: [],
+      Martes: [],
+      Miercoles: [],
+      Jueves: [],
+      Viernes: [],
+      Sabado: [],
+      Domingo: []
+    };
+
+    monitorRows.forEach(row => {
+      const details = {
+        id: row.id,
+        hora: `${row.hora_inicio} - ${row.hora_fin}`,
+        sitio: row.sitio_atencion,
+        barrio: row.nombre_barrio || row.corregimiento,
+        actividad: row.disciplina_y_o_actividad,
+        programa: row.programa,
+        comuna: row.Comuna || row.nombre_comuna
+      };
+
+      if (row.Lunes) scheduleByDay.Lunes.push(details);
+      if (row.Martes) scheduleByDay.Martes.push(details);
+      if (row.Miercoles) scheduleByDay.Miercoles.push(details);
+      if (row.Jueves) scheduleByDay.Jueves.push(details);
+      if (row.Viernes) scheduleByDay.Viernes.push(details);
+      if (row.sabado) scheduleByDay.Sabado.push(details);
+      if (row.Domingo) scheduleByDay.Domingo.push(details);
+    });
+
+    return scheduleByDay;
+  }, [data, monitorInFocus]);
+
+  // Paginación de Tabla General
+  const paginatedData = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredData.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredData, currentPage]);
+
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
+
+  // Exportar datos filtrados a CSV
+  const exportFilteredToCSV = () => {
+    if (filteredData.length === 0) {
+      showToast("No hay datos para exportar con los filtros seleccionados.", "error");
+      return;
+    }
+
+    const headers = [
+      "ID", "Comuna", "Barrio/Corregimiento", "Zona", "Sitio de Atencion", 
+      "Direccion", "Disciplina", "Programa", "Monitor", 
+      "Horario Lunes", "Horario Martes", "Horario Miercoles", "Horario Jueves", 
+      "Horario Viernes", "Horario Sabado", "Horario Domingo", "Hora Inicio", "Hora Fin"
+    ];
+
+    const rows = filteredData.map(r => [
+      r.id,
+      r.Comuna || r.nombre_comuna,
+      r.nombre_barrio,
+      r.zona,
+      `"${(r.sitio_atencion || '').replace(/"/g, '""')}"`,
+      `"${(r.direccion_sitio_atencion || '').replace(/"/g, '""')}"`,
+      r.disciplina_y_o_actividad,
+      r.programa,
+      `"${r.MONITOR}"`,
+      r.Lunes ? "SI" : "",
+      r.Martes ? "SI" : "",
+      r.Miercoles ? "SI" : "",
+      r.Jueves ? "SI" : "",
+      r.Viernes ? "SI" : "",
+      r.sabado ? "SI" : "",
+      r.Domingo ? "SI" : "",
+      r.hora_inicio,
+      r.hora_fin
+    ]);
+
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
+      + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Parrilla_Filtrada_SIDR_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast("Archivo CSV descargado correctamente.", "success");
+  };
+
+  // Resetear filtros
+  const handleResetFilters = () => {
+    setSearchTerm("");
+    setSelectedPrograma("Todos");
+    setSelectedComuna("Todas");
+    setSelectedZona("Todas");
+    setSelectedMonitor("Todos");
+    setSelectedDia("Todos");
+    setSelectedDisciplina("Todas");
+    setCurrentPage(1);
+    showToast("Filtros restablecidos", "info");
+  };
+
+  return (
+    <div className={`min-h-screen font-sans transition-colors duration-200 ${darkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
+      
+      {/* --- TOAST NOTIFICATIONS --- */}
+      {toastMessage && (
+        <div className="fixed top-5 right-5 z-50 flex items-center gap-3 p-4 rounded-xl shadow-2xl border transition-all transform animate-bounce duration-300 max-w-md
+          bg-slate-900 text-white border-emerald-500/30">
+          <div className={`w-3 h-3 rounded-full ${toastMessage.type === 'error' ? 'bg-rose-500' : toastMessage.type === 'info' ? 'bg-amber-400' : 'bg-emerald-400'}`} />
+          <p className="text-sm font-medium">{toastMessage.message}</p>
+        </div>
+      )}
+
+      {/* --- HEADER --- */}
+      <header className={`border-b sticky top-0 z-30 transition-colors duration-200 ${darkMode ? 'bg-slate-900/95 border-slate-800' : 'bg-white/95 border-slate-200'} backdrop-blur-md`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="bg-emerald-600 text-white p-2.5 rounded-xl shadow-md shadow-emerald-500/20">
+              <Activity className="h-6 w-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wider text-emerald-500">Sistema SIDR - Cali</span>
+                <span className="bg-emerald-500/10 text-emerald-500 text-[10px] px-1.5 py-0.5 rounded font-bold">2026</span>
+              </div>
+              <h1 className="text-lg font-bold leading-tight">Dashboard de Programas y Parrilla</h1>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Dark Mode Toggle */}
+            <button 
+              onClick={() => setDarkMode(!darkMode)}
+              className={`p-2.5 rounded-xl border transition-all ${
+                darkMode 
+                  ? 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white' 
+                  : 'bg-slate-100 border-slate-200 text-slate-600 hover:text-slate-900'
+              }`}
+              title={darkMode ? "Modo Claro" : "Modo Oscuro"}
+            >
+              {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
+
+            {/* Export Quick Button */}
+            <button
+              onClick={exportFilteredToCSV}
+              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 transition-all hover:-translate-y-0.5 active:translate-y-0"
+            >
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline">Exportar Parrilla</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* --- SUB-HEADER CON ESTADÍSTICAS DEL ARCHIVO --- */}
+      <div className={`border-b text-xs ${darkMode ? 'bg-slate-900/40 border-slate-800 text-slate-400' : 'bg-slate-100/60 border-slate-200 text-slate-600'}`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex flex-wrap gap-4 justify-between items-center">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-emerald-500">Archivo Activo:</span>
+            <span className={`font-mono px-2 py-0.5 rounded ${darkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'}`}>{fileName}</span>
+            <span className="opacity-70">| Tamaño: {fileStats.size} | Filas cargadas: {fileStats.rows}</span>
+          </div>
+          <div className="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            Listo para analizar
+          </div>
+        </div>
+      </div>
+
+      {/* --- CONTENIDO PRINCIPAL --- */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        
+        {/* PANEL DE ARRASTRAR Y SOLTAR CSV */}
+        <section className={`p-6 rounded-2xl border-2 border-dashed transition-all ${
+          darkMode 
+            ? 'bg-slate-900/60 border-slate-800 hover:border-emerald-500/40' 
+            : 'bg-white border-slate-300 hover:border-emerald-500'
+        }`}>
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="space-y-2 text-center md:text-left">
+              <h2 className="text-lg font-bold flex items-center justify-center md:justify-start gap-2">
+                <Upload className="h-5 w-5 text-emerald-500" />
+                Cargar tu propia Parrilla SIDR (.csv)
+              </h2>
+              <p className={`text-sm max-w-2xl ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                Sube el archivo <span className="font-semibold text-emerald-500">"parrilla SIDR a ABRIL 20 2026 dashboard.xlsx - ExportFile.csv"</span> o cualquier exportación CSV para poblar este dashboard con la información oficial actualizada de inmediato.
+              </p>
+            </div>
+            <div className="relative w-full md:w-auto">
+              <input 
+                type="file" 
+                accept=".csv" 
+                onChange={handleCSVUpload}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+              />
+              <div className="bg-emerald-600/10 border border-emerald-500/30 text-emerald-500 hover:bg-emerald-600/20 px-6 py-4 rounded-xl text-center font-semibold text-sm transition-all flex items-center justify-center gap-3">
+                <FileText className="h-5 w-5 animate-pulse" />
+                <span>Seleccionar CSV</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* --- TARJETAS METRICAS (KPI) --- */}
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          
+          <div className={`p-5 rounded-2xl border relative overflow-hidden transition-all duration-300 hover:shadow-xl ${
+            darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
+          }`}>
+            <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-bl-full pointer-events-none" />
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Sesiones Programadas</p>
+            <div className="flex items-baseline gap-2 mt-2">
+              <span className="text-3xl font-extrabold tracking-tight">{stats.sesionesSemanales}</span>
+              <span className="text-xs text-emerald-500 font-bold">por semana</span>
+            </div>
+            <div className="flex items-center gap-1.5 mt-3 text-xs text-slate-400">
+              <Calendar className="h-3.5 w-3.5 text-emerald-500" />
+              <span>Suma total de días activos</span>
+            </div>
+          </div>
+
+          <div className={`p-5 rounded-2xl border relative overflow-hidden transition-all duration-300 hover:shadow-xl ${
+            darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
+          }`}>
+            <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-bl-full pointer-events-none" />
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Monitores Activos</p>
+            <div className="flex items-baseline gap-2 mt-2">
+              <span className="text-3xl font-extrabold tracking-tight">{stats.monitores}</span>
+              <span className="text-xs text-blue-500 font-bold">Profesionales</span>
+            </div>
+            <div className="flex items-center gap-1.5 mt-3 text-xs text-slate-400">
+              <Users className="h-3.5 w-3.5 text-blue-500" />
+              <span>Asignados en sitio</span>
+            </div>
+          </div>
+
+          <div className={`p-5 rounded-2xl border relative overflow-hidden transition-all duration-300 hover:shadow-xl ${
+            darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
+          }`}>
+            <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-bl-full pointer-events-none" />
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Cobertura Territorial</p>
+            <div className="flex items-baseline gap-2 mt-2">
+              <span className="text-3xl font-extrabold tracking-tight">{stats.barrios}</span>
+              <span className="text-xs text-purple-500 font-bold">Barrios/Veredas</span>
+            </div>
+            <div className="flex items-center gap-1.5 mt-3 text-xs text-slate-400">
+              <MapPin className="h-3.5 w-3.5 text-purple-500" />
+              <span>En {stats.comunas} Comunas de Cali</span>
+            </div>
+          </div>
+
+          <div className={`p-5 rounded-2xl border relative overflow-hidden transition-all duration-300 hover:shadow-xl ${
+            darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
+          }`}>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Distribución de Zona</p>
+            <div className="mt-2.5">
+              <div className="flex justify-between text-xs font-bold mb-1">
+                <span className="text-emerald-500">Urbano: {stats.pctUrbana}%</span>
+                <span className="text-amber-500">Rural: {stats.pctRural}%</span>
+              </div>
+              <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden flex">
+                <div className="bg-emerald-500 h-full transition-all duration-500" style={{ width: `${stats.pctUrbana}%` }} />
+                <div className="bg-amber-500 h-full transition-all duration-500" style={{ width: `${stats.pctRural}%` }} />
+              </div>
+            </div>
+            <div className="flex justify-between mt-3 text-[11px] text-slate-400">
+              <span>{stats.urbanCount} Fichas urbanas</span>
+              <span>{stats.ruralCount} Fichas rurales</span>
+            </div>
+          </div>
+
+        </section>
+
+        {/* --- FILTROS DE DATOS MULTIPLE --- */}
+        <section className={`p-6 rounded-2xl border ${
+          darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'
+        }`}>
+          <div className="flex flex-col md:flex-row items-center justify-between pb-4 mb-5 border-b border-dashed border-slate-200 dark:border-slate-800 gap-4">
+            <div className="flex items-center gap-2">
+              <Sliders className="h-5 w-5 text-emerald-500" />
+              <h3 className="font-bold text-base">Filtros Dinámicos</h3>
+              <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+                filteredData.length === data.length 
+                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-500' 
+                  : 'bg-emerald-500/15 text-emerald-500'
+              }`}>
+                {filteredData.length} de {data.length} registros
+              </span>
+            </div>
+            
+            {/* Buscador de Texto */}
+            <div className="relative w-full md:w-80">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <input 
+                type="text" 
+                placeholder="Buscar monitor, barrio, disciplina..."
+                value={searchTerm}
+                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                className={`w-full pl-9 pr-4 py-2 text-sm rounded-xl border outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all ${
+                  darkMode 
+                    ? 'bg-slate-950 border-slate-800 text-slate-100' 
+                    : 'bg-slate-50 border-slate-200 text-slate-900'
+                }`}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            {/* Programa */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Programa</label>
+              <select 
+                value={selectedPrograma}
+                onChange={(e) => { setSelectedPrograma(e.target.value); setCurrentPage(1); }}
+                className={`w-full px-3 py-2 text-sm rounded-xl border focus:border-emerald-500 outline-none transition-all ${
+                  darkMode ? 'bg-slate-950 border-slate-800 text-slate-100' : 'bg-slate-50 border-slate-200'
+                }`}
+              >
+                {filterOptions.programas.map((p, idx) => (
+                  <option key={idx} value={p}>{p}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Comuna */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Comuna / Territorio</label>
+              <select 
+                value={selectedComuna}
+                onChange={(e) => { setSelectedComuna(e.target.value); setCurrentPage(1); }}
+                className={`w-full px-3 py-2 text-sm rounded-xl border focus:border-emerald-500 outline-none transition-all ${
+                  darkMode ? 'bg-slate-950 border-slate-800 text-slate-100' : 'bg-slate-50 border-slate-200'
+                }`}
+              >
+                {filterOptions.comunas.map((c, idx) => (
+                  <option key={idx} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Disciplina */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Disciplina / Actividad</label>
+              <select 
+                value={selectedDisciplina}
+                onChange={(e) => { setSelectedDisciplina(e.target.value); setCurrentPage(1); }}
+                className={`w-full px-3 py-2 text-sm rounded-xl border focus:border-emerald-500 outline-none transition-all ${
+                  darkMode ? 'bg-slate-950 border-slate-800 text-slate-100' : 'bg-slate-50 border-slate-200'
+                }`}
+              >
+                {filterOptions.disciplinas.map((d, idx) => (
+                  <option key={idx} value={d}>{d}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Monitor */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Monitor</label>
+              <select 
+                value={selectedMonitor}
+                onChange={(e) => { setSelectedMonitor(e.target.value); setCurrentPage(1); }}
+                className={`w-full px-3 py-2 text-sm rounded-xl border focus:border-emerald-500 outline-none transition-all ${
+                  darkMode ? 'bg-slate-950 border-slate-800 text-slate-100' : 'bg-slate-50 border-slate-200'
+                }`}
+              >
+                {filterOptions.monitores.map((m, idx) => (
+                  <option key={idx} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Zona */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Zona</label>
+              <select 
+                value={selectedZona}
+                onChange={(e) => { setSelectedZona(e.target.value); setCurrentPage(1); }}
+                className={`w-full px-3 py-2 text-sm rounded-xl border focus:border-emerald-500 outline-none transition-all ${
+                  darkMode ? 'bg-slate-950 border-slate-800 text-slate-100' : 'bg-slate-50 border-slate-200'
+                }`}
+              >
+                <option value="Todas">Todas las Zonas</option>
+                <option value="Urbana">Urbana</option>
+                <option value="Rural">Rural</option>
+              </select>
+            </div>
+
+            {/* Día de la semana */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Día de Actividad</label>
+              <select 
+                value={selectedDia}
+                onChange={(e) => { setSelectedDia(e.target.value); setCurrentPage(1); }}
+                className={`w-full px-3 py-2 text-sm rounded-xl border focus:border-emerald-500 outline-none transition-all ${
+                  darkMode ? 'bg-slate-950 border-slate-800 text-slate-100' : 'bg-slate-50 border-slate-200'
+                }`}
+              >
+                <option value="Todos">Todos los días</option>
+                <option value="Lunes">Lunes</option>
+                <option value="Martes">Martes</option>
+                <option value="Miercoles">Miércoles</option>
+                <option value="Jueves">Jueves</option>
+                <option value="Viernes">Viernes</option>
+                <option value="sabado">Sábado</option>
+                <option value="Domingo">Domingo</option>
+              </select>
+            </div>
+
+            {/* Botón Restaurar Filtros */}
+            <div className="col-span-1 lg:col-span-2 flex items-end">
+              <button 
+                onClick={handleResetFilters}
+                className={`w-full py-2 px-4 rounded-xl border font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
+                  darkMode 
+                    ? 'border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white' 
+                    : 'border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                }`}
+              >
+                <RefreshCw className="h-4 w-4" />
+                <span>Restablecer Filtros</span>
+              </button>
+            </div>
+
+          </div>
+        </section>
+
+        {/* --- TABS DE NAVEGACION DE ANALISIS --- */}
+        <div className="border-b border-slate-200 dark:border-slate-800 flex flex-wrap gap-2">
+          <button 
+            onClick={() => setActiveTab("overview")}
+            className={`py-3 px-5 text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${
+              activeTab === "overview" 
+                ? "border-emerald-500 text-emerald-500" 
+                : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            }`}
+          >
+            <BarChart2 className="h-4 w-4" />
+            <span>Resumen y Gráficos</span>
+          </button>
+          
+          <button 
+            onClick={() => setActiveTab("coverage")}
+            className={`py-3 px-5 text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${
+              activeTab === "coverage" 
+                ? "border-emerald-500 text-emerald-500" 
+                : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            }`}
+          >
+            <Map className="h-4 w-4" />
+            <span>Análisis Territorial</span>
+          </button>
+
+          <button 
+            onClick={() => setActiveTab("monitors")}
+            className={`py-3 px-5 text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${
+              activeTab === "monitors" 
+                ? "border-emerald-500 text-emerald-500" 
+                : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            }`}
+          >
+            <Users className="h-4 w-4" />
+            <span>Directorio de Monitores</span>
+          </button>
+
+          <button 
+            onClick={() => setActiveTab("grid")}
+            className={`py-3 px-5 text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${
+              activeTab === "grid" 
+                ? "border-emerald-500 text-emerald-500" 
+                : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            }`}
+          >
+            <FileText className="h-4 w-4" />
+            <span>Parrilla Completa ({filteredData.length})</span>
+          </button>
+        </div>
+
+        {/* --- PESTAÑA 1: VISTA DE RESUMEN Y GRÁFICOS --- */}
+        {activeTab === "overview" && (
+          <div className="space-y-6">
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              
+              {/* Gráfico 1: Sesiones por Programa */}
+              <div className={`p-6 rounded-2xl border ${
+                darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'
+              }`}>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-sm tracking-wide uppercase text-slate-400">Participación por Programa</h3>
+                  <TrendingUp className="h-4 w-4 text-emerald-500" />
+                </div>
+                {programaChartData.length === 0 ? (
+                  <div className="h-64 flex items-center justify-center text-slate-400 text-sm">
+                    No hay datos disponibles
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {programaChartData.map((item, index) => {
+                      const maxVal = Math.max(...programaChartData.map(i => i.value));
+                      const pct = Math.round((item.value / maxVal) * 100);
+                      const totalPct = Math.round((item.value / filteredData.length) * 100);
+
+                      // Asignar colores variados
+                      const colors = [
+                        "bg-emerald-500", "bg-blue-500", "bg-purple-500", 
+                        "bg-amber-500", "bg-rose-500", "bg-indigo-500"
+                      ];
+                      const color = colors[index % colors.length];
+
+                      return (
+                        <div key={index} className="space-y-1">
+                          <div className="flex justify-between text-xs font-semibold">
+                            <span className="truncate max-w-[70%]">{item.name}</span>
+                            <span className="text-slate-400">{item.value} fichas ({totalPct}%)</span>
+                          </div>
+                          <div className="w-full bg-slate-100 dark:bg-slate-800 h-3 rounded-full overflow-hidden">
+                            <div className={`${color} h-full rounded-full transition-all duration-1000`} style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Gráfico 2: Intensidad Semanal (Días de la semana) */}
+              <div className={`p-6 rounded-2xl border ${
+                darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'
+              }`}>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-sm tracking-wide uppercase text-slate-400 font-sans">Volumen de Actividad por Día</h3>
+                  <Calendar className="h-4 w-4 text-emerald-500" />
+                </div>
+                {dayChartData.every(d => d.value === 0) ? (
+                  <div className="h-64 flex items-center justify-center text-slate-400 text-sm">
+                    No hay datos para estos días
+                  </div>
+                ) : (
+                  <div className="h-64 flex items-end justify-between pt-6 px-2 gap-2">
+                    {dayChartData.map((day, idx) => {
+                      const maxDay = Math.max(...dayChartData.map(d => d.value));
+                      const heightPct = maxDay > 0 ? (day.value / maxDay) * 80 + 10 : 10;
+
+                      return (
+                        <div key={idx} className="flex flex-col items-center flex-1 group relative">
+                          {/* Tooltip */}
+                          <div className="absolute -top-10 scale-0 group-hover:scale-100 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-950 text-[10px] font-bold px-2 py-1 rounded transition-transform pointer-events-none shadow-lg z-20 whitespace-nowrap">
+                            {day.value} sesiones
+                          </div>
+                          
+                          {/* Columna */}
+                          <div className="w-full bg-slate-100 dark:bg-slate-800/50 rounded-lg h-44 flex items-end overflow-hidden">
+                            <div 
+                              className="w-full bg-emerald-500 group-hover:bg-emerald-400 transition-all rounded-lg"
+                              style={{ height: `${heightPct}%` }}
+                            />
+                          </div>
+
+                          <span className="text-xs font-semibold mt-2.5 truncate max-w-full text-slate-500 dark:text-slate-400">
+                            {day.name.slice(0, 3)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+            </div>
+
+            {/* Fila Inferior: Top Disciplinas y Atenciones Especiales */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              
+              {/* Top Disciplinas */}
+              <div className={`p-6 rounded-2xl border lg:col-span-2 ${
+                darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'
+              }`}>
+                <h3 className="font-bold text-sm tracking-wide uppercase text-slate-400 mb-5">Disciplinas más Frecuentes</h3>
+                <div className="space-y-4">
+                  {disciplinaChartData.map((item, idx) => {
+                    const maxVal = Math.max(...disciplinaChartData.map(i => i.value));
+                    const widthPct = (item.value / maxVal) * 100;
+                    
+                    return (
+                      <div key={idx} className="flex items-center gap-4">
+                        <span className="text-xs font-bold w-28 truncate text-right text-slate-500 dark:text-slate-400">{item.name}</span>
+                        <div className="flex-1 bg-slate-100 dark:bg-slate-800 h-6 rounded-lg overflow-hidden relative flex items-center">
+                          <div className="bg-emerald-500/20 hover:bg-emerald-500/30 h-full rounded-r-lg transition-all" style={{ width: `${widthPct}%` }} />
+                          <span className="absolute left-3 text-xs font-bold text-emerald-500">{item.value} fichas</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Card Resumen Rápido / Leyenda del SIDR */}
+              <div className={`p-6 rounded-2xl border ${
+                darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
+              } flex flex-col justify-between`}>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-emerald-500">
+                    <Info className="h-5 w-5" />
+                    <span className="font-bold text-sm uppercase tracking-wider">Concepto SIDR</span>
+                  </div>
+                  <h4 className="text-lg font-bold">Distribución Activa 2026</h4>
+                  <p className={`text-xs leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                    El Sistema Integrado de Deporte y Recreación de Cali (SIDR) distribuye sus actividades a lo largo de las 22 comunas urbanas y los 15 corregimientos rurales del municipio.
+                  </p>
+                  <p className={`text-xs leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                    Este dashboard permite visualizar y re-configurar la oferta de monitores, optimizando las disciplinas (Acuáticas, Funcionales, Recreación) acorde a las necesidades del territorio.
+                  </p>
+                </div>
+                <div className={`mt-4 p-3 rounded-xl text-xs flex items-center gap-2.5 ${darkMode ? 'bg-slate-800' : 'bg-slate-100'}`}>
+                  <span className="text-xl">💡</span>
+                  <span>Puedes subir tu planilla modificada en Excel exportada como CSV para actualizar las gráficas.</span>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        )}
+
+        {/* --- PESTAÑA 2: ANALISIS TERRITORIAL --- */}
+        {activeTab === "coverage" && (
+          <div className="space-y-6">
+            
+            {/* Mapa de Cali Ilustrado & Distribución */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              
+              <div className={`p-6 rounded-2xl border lg:col-span-2 ${
+                darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
+              }`}>
+                <h3 className="font-bold text-sm tracking-wide uppercase text-slate-400 mb-4">Ubicación y Distribución Geográfica de Comunas</h3>
+                
+                {/* Mapa Sintético Cali */}
+                <div className={`relative h-72 rounded-xl overflow-hidden flex items-center justify-center border border-dashed ${
+                  darkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'
+                }`}>
+                  {/* Grid de Representacion de Comunas */}
+                  <div className="grid grid-cols-5 gap-3 p-4 w-full max-w-lg">
+                    {/* Comunas Norte */}
+                    <div className="p-2 border rounded-lg bg-emerald-500/10 border-emerald-500 text-center">
+                      <p className="text-[10px] text-emerald-500 font-bold">Norte (C2, C4)</p>
+                      <p className="text-lg font-black">{data.filter(r => ["2", "4"].includes(r.nombre_comuna)).length}</p>
+                    </div>
+                    {/* Comunas Oeste */}
+                    <div className="p-2 border rounded-lg bg-emerald-500/10 border-emerald-500 text-center">
+                      <p className="text-[10px] text-emerald-500 font-bold">Oeste (C1, C3)</p>
+                      <p className="text-lg font-black">{data.filter(r => ["1", "3"].includes(r.nombre_comuna)).length}</p>
+                    </div>
+                    {/* Comunas Centro */}
+                    <div className="p-2 border rounded-lg bg-emerald-500/10 border-emerald-500 text-center">
+                      <p className="text-[10px] text-emerald-500 font-bold">Centro (C9, C10)</p>
+                      <p className="text-lg font-black">{data.filter(r => ["9", "10"].includes(r.nombre_comuna)).length}</p>
+                    </div>
+                    {/* Comunas Oriente */}
+                    <div className="p-2 border rounded-lg bg-emerald-500/10 border-emerald-500 text-center">
+                      <p className="text-[10px] text-emerald-500 font-bold">Oriente (C15, C21)</p>
+                      <p className="text-lg font-black">{data.filter(r => ["15", "21"].includes(r.nombre_comuna)).length}</p>
+                    </div>
+                    {/* Comunas Sur */}
+                    <div className="p-2 border rounded-lg bg-emerald-500/10 border-emerald-500 text-center">
+                      <p className="text-[10px] text-emerald-500 font-bold">Sur (C17, C18)</p>
+                      <p className="text-lg font-black">{data.filter(r => ["17", "18"].includes(r.nombre_comuna)).length}</p>
+                    </div>
+
+                    {/* Fila Especial para Comunas de Laderas o Rurales */}
+                    <div className="col-span-5 py-3 px-4 border rounded-xl bg-amber-500/10 border-amber-500 flex justify-between items-center mt-3">
+                      <div>
+                        <p className="text-xs text-amber-500 font-bold">Áreas Rurales y Corregimientos (Pance, Los Andes, Felidia, etc.)</p>
+                        <p className="text-[10px] text-slate-400">Comuna 50 y corregimientos aledaños en la cordillera</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-2xl font-black text-amber-500">{data.filter(r => r.zona && r.zona.toLowerCase() === "rural").length}</span>
+                        <span className="text-xs text-slate-400 block">Sedes activas</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Etiqueta flotante */}
+                  <div className="absolute bottom-3 right-3 bg-slate-900/80 text-white text-[10px] px-2 py-1 rounded">
+                    Representación esquemática de Cali
+                  </div>
+                </div>
+              </div>
+
+              {/* Ranking por Comuna */}
+              <div className={`p-6 rounded-2xl border ${
+                darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
+              }`}>
+                <h3 className="font-bold text-sm tracking-wide uppercase text-slate-400 mb-4">Comunas más Activas</h3>
+                <div className="space-y-3.5">
+                  {comunaChartData.map((comuna, idx) => {
+                    const maxVal = Math.max(...comunaChartData.map(c => c.value));
+                    const widthPct = (comuna.value / maxVal) * 100;
+                    return (
+                      <div key={idx} className="space-y-1">
+                        <div className="flex justify-between text-xs font-bold">
+                          <span>{comuna.name}</span>
+                          <span className="text-emerald-500">{comuna.value} disciplinas</span>
+                        </div>
+                        <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                          <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${widthPct}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        )}
+
+        {/* --- PESTAÑA 3: DIRECTORIO DE MONITORES (HOJAS DE HORARIOS) --- */}
+        {activeTab === "monitors" && (
+          <div className="space-y-6">
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              
+              {/* Listado de Monitores */}
+              <div className={`p-6 rounded-2xl border md:col-span-1 ${
+                darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
+              }`}>
+                <h3 className="font-bold text-sm tracking-wide uppercase text-slate-400 mb-4">Seleccionar Monitor</h3>
+                <div className="relative mb-3">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                  <input 
+                    type="text" 
+                    placeholder="Filtrar monitor..."
+                    onChange={(e) => {
+                      const val = e.target.value.toLowerCase();
+                      const found = filterOptions.monitores.find(m => m !== "Todos" && m.toLowerCase().includes(val));
+                      if (found) setMonitorInFocus(found);
+                    }}
+                    className={`w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border outline-none ${
+                      darkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'
+                    }`}
+                  />
+                </div>
+
+                <div className="space-y-1 max-h-96 overflow-y-auto pr-2">
+                  {filterOptions.monitores.filter(m => m !== "Todos").map((monitor, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setMonitorInFocus(monitor)}
+                      className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-between ${
+                        monitorInFocus === monitor
+                          ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
+                          : darkMode 
+                            ? 'hover:bg-slate-800 text-slate-300' 
+                            : 'hover:bg-slate-100 text-slate-700'
+                      }`}
+                    >
+                      <span className="truncate">{monitor}</span>
+                      {monitorInFocus === monitor && <Check className="h-3.5 w-3.5 shrink-0" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Agenda Semanal del Monitor */}
+              <div className={`p-6 rounded-2xl border md:col-span-2 ${
+                darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
+              }`}>
+                <div className="flex flex-wrap items-center justify-between gap-4 border-b border-dashed border-slate-200 dark:border-slate-800 pb-4 mb-4">
+                  <div>
+                    <h3 className="font-bold text-lg text-emerald-500">{monitorInFocus || "No hay monitor seleccionado"}</h3>
+                    <p className="text-xs text-slate-400">Esquema consolidado de clases semanales asignadas</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs bg-emerald-500/10 text-emerald-500 px-3 py-1 rounded-full font-bold">
+                      {data.filter(r => r.MONITOR === monitorInFocus).length} Fichas asignadas
+                    </span>
+                  </div>
+                </div>
+
+                {/* Parrilla Semanal Monday-Sunday */}
+                <div className="space-y-4">
+                  {["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"].map((day, idx) => {
+                    const sessions = monitorSchedule[day] || [];
+                    return (
+                      <div key={idx} className={`p-4 rounded-xl border ${
+                        sessions.length > 0 
+                          ? darkMode ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-emerald-500/5 border-emerald-200'
+                          : darkMode ? 'bg-slate-950/40 border-slate-800' : 'bg-slate-50 border-slate-100'
+                      }`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-black uppercase text-slate-400 tracking-wider">{day}</span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            sessions.length > 0 ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'
+                          }`}>
+                            {sessions.length} clases
+                          </span>
+                        </div>
+
+                        {sessions.length === 0 ? (
+                          <p className="text-xs text-slate-400 italic">Sin clases programadas este día</p>
+                        ) : (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {sessions.map((s, sIdx) => (
+                              <div key={sIdx} className={`p-3 rounded-lg border ${
+                                darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'
+                              } text-xs space-y-1.5`}>
+                                <div className="flex justify-between items-center">
+                                  <span className="font-bold text-emerald-500">{s.hora}</span>
+                                  <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-mono text-[9px] text-slate-500">{s.comuna}</span>
+                                </div>
+                                <h4 className="font-bold uppercase text-slate-800 dark:text-slate-200">{s.actividad}</h4>
+                                <p className="text-slate-500 leading-tight">📍 {s.sitio} ({s.barrio})</p>
+                                <p className="text-[10px] text-slate-400 italic">Programa: {s.programa}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+        )}
+
+        {/* --- PESTAÑA 4: PARRILLA COMPLETA (EXPLORADOR) --- */}
+        {activeTab === "grid" && (
+          <div className="space-y-4">
+            
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h3 className="font-bold text-base">Explorador de Sesiones Planificadas</h3>
+                <p className="text-xs text-slate-400">Lista completa ordenada de la parrilla de monitores</p>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={exportFilteredToCSV}
+                  className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs px-3 py-2 rounded-lg transition-all"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  <span>Descargar vista actual</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Tabla Principal */}
+            <div className={`border rounded-2xl overflow-hidden ${
+              darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'
+            }`}>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className={`border-b uppercase font-bold text-slate-500 dark:text-slate-400 ${
+                    darkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'
+                  }`}>
+                    <tr>
+                      <th className="p-4 w-12">ID</th>
+                      <th className="p-4">Programa</th>
+                      <th className="p-4">Monitor</th>
+                      <th className="p-4">Ubicación / Comuna</th>
+                      <th className="p-4">Disciplina</th>
+                      <th className="p-4">Días de Actividad</th>
+                      <th className="p-4">Horas</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {paginatedData.length === 0 ? (
+                      <tr>
+                        <td colSpan="7" className="p-8 text-center text-slate-400 italic">
+                          No se encontraron registros que coincidan con los filtros aplicados.
+                        </td>
+                      </tr>
+                    ) : (
+                      paginatedData.map((row, idx) => {
+                        // Construir insignia de días
+                        const daysString = [
+                          row.Lunes ? "Lu" : "",
+                          row.Martes ? "Ma" : "",
+                          row.Miercoles ? "Mi" : "",
+                          row.Jueves ? "Ju" : "",
+                          row.Viernes ? "Vi" : "",
+                          row.sabado ? "Sá" : "",
+                          row.Domingo ? "Do" : ""
+                        ].filter(Boolean).join(" - ");
+
+                        return (
+                          <tr key={row.id || idx} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all`}>
+                            <td className="p-4 font-mono font-bold text-emerald-500">{row.id}</td>
+                            <td className="p-4 font-semibold">{row.programa}</td>
+                            <td className="p-4">
+                              <span className="font-bold text-slate-800 dark:text-slate-200">{row.MONITOR}</span>
+                            </td>
+                            <td className="p-4 max-w-xs">
+                              <p className="font-bold truncate">{row.sitio_atencion}</p>
+                              <p className="text-[10px] text-slate-400 truncate">
+                                {row.nombre_barrio || row.corregimiento} | Comuna {row.nombre_comuna || row.Comuna}
+                              </p>
+                              <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold inline-block mt-1 ${
+                                row.zona && row.zona.toLowerCase() === "rural" 
+                                  ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-500' 
+                                  : 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-500'
+                              }`}>
+                                {row.zona || "Urbana"}
+                              </span>
+                            </td>
+                            <td className="p-4">
+                              <span className="bg-emerald-500/10 text-emerald-500 px-2 py-1 rounded-md font-bold">
+                                {row.disciplina_y_o_actividad}
+                              </span>
+                            </td>
+                            <td className="p-4 font-semibold text-slate-600 dark:text-slate-300">
+                              {daysString || <span className="text-slate-400 italic">No especificado</span>}
+                            </td>
+                            <td className="p-4 font-mono font-bold">
+                              {row.hora_inicio} - {row.hora_fin}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Paginación */}
+              <div className={`p-4 border-t flex items-center justify-between text-xs ${
+                darkMode ? 'border-slate-800' : 'border-slate-200'
+              }`}>
+                <span className="text-slate-400">
+                  Mostrando {filteredData.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} - {Math.min(currentPage * itemsPerPage, filteredData.length)} de {filteredData.length} resultados
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    className="p-1.5 rounded-lg border hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 transition-all"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <span className="px-3 font-semibold">Página {currentPage} de {totalPages}</span>
+                  <button
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    className="p-1.5 rounded-lg border hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 transition-all"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        )}
+
+      </main>
+
+      {/* --- FOOTER --- */}
+      <footer className={`border-t py-8 text-center text-xs mt-12 transition-colors duration-200 ${
+        darkMode ? 'bg-slate-950 border-slate-900 text-slate-500' : 'bg-white border-slate-200 text-slate-500'
+      }`}>
+        <p>© 2026 Sistema Integrado de Deporte y Recreación (SIDR) - Alcaldía de Santiago de Cali.</p>
+        <p className="mt-1">Diseñado para la visualización y control estratégico de la parrilla deportiva en la región.</p>
+      </footer>
+
+    </div>
+  );
+}
