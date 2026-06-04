@@ -1,0 +1,1713 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIDER Dashboard - Cali 2026</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Leaflet Map CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <!-- Chart.js and Datalabels Plugin -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+  
+  <!-- PapaParse for robust CSV parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+  <style>
+    /* Custom Scrollbar for sleek UI */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+    /* Leaflet popup overrides */
+    .leaflet-popup-content-wrapper {
+      background-color: #1e293b !important;
+      color: #f1f5f9 !important;
+      border-radius: 0.75rem !important;
+      border: 1px solid #334155 !important;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5) !important;
+    }
+    .leaflet-popup-tip {
+      background-color: #1e293b !important;
+      border: 1px solid #334155 !important;
+    }
+    /* Heatmap cell intensities for pivot tables */
+    .intensity-low { background-color: rgba(56, 189, 248, 0.1) !important; }
+    .intensity-medium { background-color: rgba(56, 189, 248, 0.25) !important; }
+    .intensity-high { background-color: rgba(56, 189, 248, 0.45) !important; }
+    .intensity-max { background-color: rgba(56, 189, 248, 0.65) !important; color: #000 !important; font-weight: bold; }
+  </style>
+</head>
+<body class="h-full font-sans antialiased">
+
+  <div class="min-h-full flex flex-col">
+    <!-- Header -->
+    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 shadow-md">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div class="flex items-center space-x-3">
+          <div class="p-2 bg-gradient-to-br from-sky-500 to-indigo-600 rounded-lg shadow-inner">
+            <i class="fa-solid fa-chart-line text-2xl text-white"></i>
+          </div>
+          <div>
+            <h1 class="text-xl font-bold bg-gradient-to-r from-white via-slate-100 to-sky-400 bg-clip-text text-transparent">SIDER - PROGRAMACION OFERTA DEPORTIVA </h1>
+            <p class="text-xs text-slate-400">Parrilla de Programación Deportiva y Recreativa • Mayo 2026</p>
+          </div>
+        </div>
+
+        <!-- Data Source Upload & Controls -->
+        <div class="flex flex-wrap items-center gap-3">
+          <div id="drop-zone" class="border-2 border-dashed border-slate-700 hover:border-sky-500 rounded-lg px-4 py-2 transition-colors cursor-pointer flex items-center space-x-2 bg-slate-950 text-xs">
+            <i class="fa-solid fa-cloud-arrow-up text-sky-400 text-base"></i>
+            <span id="upload-status" class="text-slate-300">Arrastra tu CSV aquí o haz clic</span>
+            <input type="file" id="csv-file-input" class="hidden" accept=".csv" />
+          </div>
+          <button id="load-demo-btn" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs text-sky-400 font-semibold rounded-lg transition border border-slate-700 flex items-center gap-1.5">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Cargar Datos Demo
+          </button>
+          <button id="reset-filters-btn" class="hidden px-3 py-2 bg-rose-950/40 hover:bg-rose-900/40 text-xs text-rose-300 font-semibold rounded-lg transition border border-rose-800/60 flex items-center gap-1.5">
+            <i class="fa-solid fa-filter-circle-xmark"></i> Limpiar Filtros
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Empty/Welcome State -->
+    <div id="welcome-container" class="flex-1 max-w-4xl mx-auto px-4 flex flex-col items-center justify-center text-center py-16">
+      <div class="p-6 bg-slate-900/50 rounded-full border border-slate-800 mb-6 shadow-xl relative animate-pulse">
+        <i class="fa-solid fa-folder-open text-6xl text-sky-400"></i>
+        <div class="absolute -top-1 -right-1 bg-amber-500 text-slate-950 text-xs font-bold px-2 py-0.5 rounded-full">CSV</div>
+      </div>
+      <h2 class="text-2xl font-bold text-slate-50 mb-2">Visualizador de la Parrilla de Programación Deportiva SIDER</h2>
+      <p class="text-slate-400 max-w-lg mb-8 text-sm">
+        Para comenzar a explorar los indicadores, gráficos dinámicos y el mapa interactivo de Cali, por favor carga tu archivo CSV de programación o utiliza nuestros datos simulados de alta fidelidad.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 w-full max-w-md justify-center">
+        <button id="trigger-upload-btn" class="flex-1 py-3 px-6 bg-sky-600 hover:bg-sky-500 text-slate-950 text-sm font-bold rounded-xl transition duration-150 flex items-center justify-center gap-2 shadow-lg shadow-sky-900/20">
+          <i class="fa-solid fa-file-csv text-base"></i> Seleccionar Archivo CSV
+        </button>
+        <button id="load-demo-welcome-btn" class="flex-1 py-3 px-6 bg-slate-900 hover:bg-slate-800 text-slate-300 text-sm font-semibold rounded-xl transition duration-150 border border-slate-700 flex items-center justify-center gap-2">
+          <i class="fa-solid fa-play text-xs text-amber-400"></i> Ver con Datos Demo
+        </button>
+      </div>
+      <div class="mt-12 text-left bg-slate-900/60 p-5 rounded-xl border border-slate-800 max-w-xl text-xs text-slate-400 leading-relaxed">
+        <h4 class="font-bold text-slate-200 mb-2 flex items-center gap-1.5"><i class="fa-solid fa-circle-info text-sky-400"></i> Formato de Columnas requerido:</h4>
+        <p>El dashboard procesa automáticamente las siguientes cabeceras del archivo:</p>
+        <code class="block mt-2 bg-slate-950 p-2 rounded text-[11px] text-sky-300 overflow-x-auto whitespace-nowrap">
+          nombre_comuna; nombre_barrio; sitio_atencion; direccion_sitio_atencion; disciplina_y_o_actividad; Lunes; Martes; Miercoles; Jueves; Viernes; sabado; Domingo; programa; MONITOR; nombre grupo
+        </code>
+      </div>
+    </div>
+
+    <!-- Main Dashboard Area (Hidden by default until data is loaded) -->
+    <main id="dashboard-container" class="hidden flex-1 max-w-[1600px] w-full mx-auto p-4 lg:p-6 space-y-6">
+
+      <!-- Permanent Global Filters Panel -->
+      <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-lg space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+          <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+            <i class="fa-solid fa-filter text-sky-400"></i> Modulo de Filtros Genrales SIDER
+          </h3>
+          <span class="text-[10px] text-slate-400">Filtrado unificado visible permanentemente</span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Commune Filter Dropdown -->
+          <div class="flex flex-col space-y-1.5">
+            <label for="filter-select-commune" class="text-xs text-slate-400 font-medium">Comuna / Territorio</label>
+            <select id="filter-select-commune" class="bg-slate-950 text-slate-200 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition">
+              <option value="all">Todas las Comunas (23 territorios)</option>
+              <!-- Dynamically populated -->
+            </select>
+          </div>
+          <!-- Program Filter Dropdown -->
+          <div class="flex flex-col space-y-1.5">
+            <label for="filter-select-program" class="text-xs text-slate-400 font-medium">Programa SIDER</label>
+            <select id="filter-select-program" class="bg-slate-950 text-slate-200 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition">
+              <option value="all">Todos los Programas</option>
+              <!-- Dynamically populated -->
+            </select>
+          </div>
+          <!-- Discipline Filter Dropdown -->
+          <div class="flex flex-col space-y-1.5">
+            <label for="filter-select-discipline" class="text-xs text-slate-400 font-medium">Disciplina / Actividad</label>
+            <select id="filter-select-discipline" class="bg-slate-950 text-slate-200 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition">
+              <option value="all">Todas las Disciplinas</option>
+              <!-- Dynamically populated -->
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Filters Display -->
+      <div id="active-filters-bar" class="hidden bg-sky-950/30 border border-sky-800/40 rounded-xl px-4 py-2.5 flex flex-wrap items-center gap-2.5 text-xs text-sky-300 animate-fadeIn">
+        <span class="font-semibold text-slate-300"><i class="fa-solid fa-circle-check mr-1 text-emerald-400"></i> Filtros Aplicados:</span>
+        <div id="filter-badges" class="flex flex-wrap gap-2">
+          <!-- Dynamic badges go here -->
+        </div>
+      </div>
+
+      <!-- KPI Summary Cards -->
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <!-- KPI 1 -->
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-sm hover:border-slate-700 transition flex items-center space-x-3.5">
+          <div class="p-3 bg-sky-950/60 text-sky-400 rounded-xl"><i class="fa-solid fa-users-rectangle text-xl"></i></div>
+          <div>
+            <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Grupos</p>
+            <h3 id="kpi-groups" class="text-xl font-bold text-slate-50 mt-0.5">0</h3>
+          </div>
+        </div>
+        <!-- KPI 2 -->
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-sm hover:border-slate-700 transition flex items-center space-x-3.5">
+          <div class="p-3 bg-indigo-950/60 text-indigo-400 rounded-xl"><i class="fa-solid fa-calendar-days text-xl"></i></div>
+          <div>
+            <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Sesiones / Sem</p>
+            <h3 id="kpi-sessions" class="text-xl font-bold text-slate-50 mt-0.5">0</h3>
+          </div>
+        </div>
+        <!-- KPI 3 -->
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-sm hover:border-slate-700 transition flex items-center space-x-3.5">
+          <div class="p-3 bg-emerald-950/60 text-emerald-400 rounded-xl"><i class="fa-solid fa-chalkboard-user text-xl"></i></div>
+          <div>
+            <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Monitores</p>
+            <h3 id="kpi-monitors" class="text-xl font-bold text-slate-50 mt-0.5">0</h3>
+          </div>
+        </div>
+        <!-- KPI 4 -->
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-sm hover:border-slate-700 transition flex items-center space-x-3.5">
+          <div class="p-3 bg-amber-950/60 text-amber-400 rounded-xl"><i class="fa-solid fa-map-location-dot text-xl"></i></div>
+          <div>
+            <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Comunas</p>
+            <h3 id="kpi-communes" class="text-xl font-bold text-slate-50 mt-0.5">0</h3>
+          </div>
+        </div>
+        <!-- KPI 5 -->
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-sm hover:border-slate-700 transition flex items-center space-x-3.5">
+          <div class="p-3 bg-rose-950/60 text-rose-400 rounded-xl"><i class="fa-solid fa-basketball text-xl"></i></div>
+          <div>
+            <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Disciplinas</p>
+            <h3 id="kpi-disciplines" class="text-xl font-bold text-slate-50 mt-0.5">0</h3>
+          </div>
+        </div>
+        <!-- KPI 6 -->
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-sm hover:border-slate-700 transition flex items-center space-x-3.5">
+          <div class="p-3 bg-purple-950/60 text-purple-400 rounded-xl"><i class="fa-solid fa-school-flag text-xl"></i></div>
+          <div>
+            <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Escenarios</p>
+            <h3 id="kpi-scenarios" class="text-xl font-bold text-slate-50 mt-0.5">0</h3>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fila 1: Commune Bar Chart (Vertical, full width) -->
+      <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 flex flex-col h-[500px] shadow-lg">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-bold text-slate-200 flex items-center gap-2">
+            <i class="fa-solid fa-chart-bar text-sky-400"></i> Distribución por Comuna (23 Comunas)
+          </h3>
+          <!-- Chart Toggle Metric -->
+          <div class="flex bg-slate-950 rounded-lg p-0.5 border border-slate-800">
+            <button id="chart-metric-groups" class="px-3 py-1.5 text-xs font-bold rounded-md bg-sky-500 text-slate-950 transition duration-150">
+              Grupos
+            </button>
+            <button id="chart-metric-sessions" class="px-3 py-1.5 text-xs font-bold rounded-md text-slate-400 hover:text-slate-200 transition duration-150">
+              Sesiones
+            </button>
+          </div>
+        </div>
+        <div class="flex-1 min-h-0 relative">
+          <canvas id="communeChart"></canvas>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-2 italic text-center">
+          * Nota: Haz clic en cualquier barra vertical para filtrar todo el dashboard por esa comuna.
+        </p>
+      </div>
+
+      <!-- Fila 2: Interactive Map & Sidebar Consultations below -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Interactive Map (Leaflet) -->
+        <div class="lg:col-span-8 bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden flex flex-col h-[520px] shadow-lg">
+          <div class="px-5 py-3.5 bg-slate-900/80 border-b border-slate-800 flex items-center justify-between">
+            <h3 class="font-bold text-slate-200 flex items-center gap-2">
+              <i class="fa-solid fa-map-location text-sky-400"></i> Mapa de Sitios de Atención y Escenarios Deportivos
+            </h3>
+            <span class="text-xs text-slate-400 bg-slate-950 px-2.5 py-1 rounded-full flex items-center gap-1">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> Cali, CO
+            </span>
+          </div>
+          <div class="flex-1 z-10 bg-slate-950" id="map"></div>
+        </div>
+
+        <!-- Queries & Filter Panel (At the front/side of the map) -->
+        <div class="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-3xl p-5 flex flex-col h-[520px] shadow-lg">
+          <div class="mb-4">
+            <h3 class="font-bold text-slate-200 flex items-center gap-2">
+              <i class="fa-solid fa-magnifying-glass-chart text-sky-400"></i> Consultas y Escenarios
+            </h3>
+            <p class="text-xs text-slate-400 mt-0.5">Búsqueda rápida e índice de puntos de atención</p>
+          </div>
+          
+          <div class="mb-4">
+            <div class="relative">
+              <input type="text" id="map-search" placeholder="Buscar sitio, barrio o dirección..." class="w-full pl-9 pr-3 py-2 bg-slate-950 text-xs rounded-xl text-slate-200 border border-slate-800 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition" />
+              <i class="fa-solid fa-magnifying-glass absolute left-3 top-3.5 text-slate-500 text-xs"></i>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between px-1 mb-2 text-xs text-slate-400">
+            <span>Resultados Coincidentes</span>
+            <span id="map-matching-count" class="font-bold text-sky-400">0</span>
+          </div>
+
+          <div id="map-site-list" class="flex-1 overflow-y-auto space-y-1.5 divide-y divide-slate-800/40 bg-slate-950 rounded-xl p-2.5 border border-slate-850">
+            <!-- Dynamic list of points -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Fila 3: Pivot Tables for Sessions by Day & Groups by Program -->
+      <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+        <!-- Pivot Table: Sessions by Day per Program -->
+        <div class="xl:col-span-8 bg-slate-900 border border-slate-800 rounded-3xl p-5 flex flex-col h-[500px] shadow-lg">
+          <div class="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h3 class="font-bold text-slate-200 flex items-center gap-2">
+                <i class="fa-solid fa-table-cells text-sky-400"></i> Tabla Dinámica: Sesiones por Día de la Semana
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">Distribución semanal de entrenamientos agrupados por programa</p>
+            </div>
+            <div class="text-[10px] text-slate-400 flex items-center gap-2 bg-slate-950 border border-slate-800 rounded-lg px-2 py-1">
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-sky-500/10 border border-sky-500/20"></span> Bajo</span>
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-sky-500/65 text-black font-bold flex justify-center items-center"></span> Máximo</span>
+            </div>
+          </div>
+          <div class="flex-1 overflow-auto rounded-xl border border-slate-800 bg-slate-950">
+            <table class="w-full text-xs text-left border-collapse">
+              <thead class="bg-slate-900 border-b border-slate-800 text-slate-300 font-semibold sticky top-0 z-10">
+                <tr>
+                  <th class="p-3.5">Programa</th>
+                  <th class="p-3.5 text-center">Lun</th>
+                  <th class="p-3.5 text-center">Mar</th>
+                  <th class="p-3.5 text-center">Mié</th>
+                  <th class="p-3.5 text-center">Jue</th>
+                  <th class="p-3.5 text-center">Vie</th>
+                  <th class="p-3.5 text-center">Sáb</th>
+                  <th class="p-3.5 text-center">Dom</th>
+                  <th class="p-3.5 text-center bg-slate-800 text-slate-200">Total</th>
+                </tr>
+              </thead>
+              <tbody id="sessions-day-program-tbody" class="divide-y divide-slate-800/50">
+                <!-- Dynamic rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Table: Groups by Program -->
+        <div class="xl:col-span-4 bg-slate-900 border border-slate-800 rounded-3xl p-5 flex flex-col h-[500px] shadow-lg">
+          <div class="mb-4">
+            <h3 class="font-bold text-slate-200 flex items-center gap-2">
+              <i class="fa-solid fa-cubes text-sky-400"></i> Tabla Dinámica: Grupos por Programa
+            </h3>
+            <p class="text-xs text-slate-400 mt-0.5">Conteo total de grupos con barras de participación</p>
+          </div>
+          <div class="flex-1 overflow-auto rounded-xl border border-slate-800 bg-slate-950">
+            <table class="w-full text-xs text-left border-collapse">
+              <thead class="bg-slate-900 border-b border-slate-800 text-slate-300 font-semibold sticky top-0 z-10">
+                <tr>
+                  <th class="p-3.5">Programa</th>
+                  <th class="p-3.5 text-center">Nro Grupos</th>
+                  <th class="p-3.5 text-right">% Participación</th>
+                </tr>
+              </thead>
+              <tbody id="groups-program-tbody" class="divide-y divide-slate-800/50">
+                <!-- Dynamic rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fila 4: Top 20 Disciplines Chart & Groups by Monitor -->
+      <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+        <!-- Top 20 Disciplines Chart -->
+        <div class="xl:col-span-5 bg-slate-900 border border-slate-800 rounded-3xl p-5 flex flex-col h-[520px] shadow-lg">
+          <div class="mb-4">
+            <h3 class="font-bold text-slate-200 flex items-center gap-2">
+              <i class="fa-solid fa-ranking-star text-sky-400"></i> Top 20 Disciplinas y Actividades
+            </h3>
+            <p class="text-xs text-slate-400 mt-0.5">Ordenado por número total de grupos en servicio</p>
+          </div>
+          <div class="flex-1 min-h-0 relative">
+            <canvas id="disciplinesChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Table: Groups by Monitor -->
+        <div class="xl:col-span-7 bg-slate-900 border border-slate-800 rounded-3xl p-5 flex flex-col h-[520px] shadow-lg">
+          <div class="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 class="font-bold text-slate-200 flex items-center gap-2">
+                <i class="fa-solid fa-address-book text-sky-400"></i> Tabla Dinámica: Grupos por Monitor
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">Consolidado de monitores activos y su cobertura territorial</p>
+            </div>
+            <!-- Search for Monitors -->
+            <div class="relative w-full sm:w-64">
+              <input type="text" id="monitor-group-search" placeholder="Filtrar monitor..." class="w-full pl-9 pr-3 py-1.5 bg-slate-950 text-xs rounded-lg text-slate-200 border border-slate-800 focus:outline-none focus:border-sky-500" />
+              <i class="fa-solid fa-user-tie absolute left-3 top-2.5 text-slate-500 text-xs"></i>
+            </div>
+          </div>
+          <div class="flex-1 overflow-auto rounded-xl border border-slate-800 bg-slate-950">
+            <table class="w-full text-xs text-left border-collapse">
+              <thead class="bg-slate-900 border-b border-slate-800 text-slate-300 font-semibold sticky top-0 z-10">
+                <tr>
+                  <th class="p-3.5">Monitor</th>
+                  <th class="p-3.5 text-center">Nro de Grupos</th>
+                  <th class="p-3.5">Programas Asociados</th>
+                  <th class="p-3.5 text-center">Comunas</th>
+                </tr>
+              </thead>
+              <tbody id="groups-monitor-tbody" class="divide-y divide-slate-800/50">
+                <!-- Dynamic rows -->
+              </tbody>
+            </table>
+          </div>
+          <!-- Pagination of monitors -->
+          <div class="flex items-center justify-between mt-3 text-xs text-slate-400 px-1">
+            <span id="monitor-group-page-text">Pág. 1 de 1</span>
+            <div class="flex gap-1.5">
+              <button id="monitor-group-prev-btn" class="px-2.5 py-1 bg-slate-850 hover:bg-slate-800 border border-slate-800 rounded-lg disabled:opacity-50 transition">Anterior</button>
+              <button id="monitor-group-next-btn" class="px-2.5 py-1 bg-slate-850 hover:bg-slate-800 border border-slate-800 rounded-lg disabled:opacity-50 transition">Siguiente</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fila 5: Sessions per Monitor (Full Width) -->
+      <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 flex flex-col h-[500px] shadow-lg">
+        <div class="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 class="font-bold text-slate-200 flex items-center gap-2">
+              <i class="fa-solid fa-clock-rotate-left text-sky-400"></i> Tabla Dinámica: Sesiones Semanales por Monitor
+            </h3>
+            <p class="text-xs text-slate-400 mt-0.5">Planificación semanal individual de actividades programadas para cada monitor</p>
+          </div>
+          <div class="relative w-full sm:w-64">
+            <input type="text" id="monitor-session-search" placeholder="Filtrar monitor..." class="w-full pl-9 pr-3 py-1.5 bg-slate-950 text-xs rounded-lg text-slate-200 border border-slate-800 focus:outline-none focus:border-sky-500" />
+            <i class="fa-solid fa-calendar-check absolute left-3 top-2.5 text-slate-500 text-xs"></i>
+          </div>
+        </div>
+        <div class="flex-1 overflow-auto rounded-xl border border-slate-800 bg-slate-950">
+          <table class="w-full text-xs text-left border-collapse">
+            <thead class="bg-slate-900 border-b border-slate-800 text-slate-300 font-semibold sticky top-0 z-10">
+              <tr>
+                <th class="p-3.5">Monitor</th>
+                <th class="p-3.5 text-center">Lun</th>
+                <th class="p-3.5 text-center">Mar</th>
+                <th class="p-3.5 text-center">Mié</th>
+                <th class="p-3.5 text-center">Jue</th>
+                <th class="p-3.5 text-center">Vie</th>
+                <th class="p-3.5 text-center">Sáb</th>
+                <th class="p-3.5 text-center">Dom</th>
+                <th class="p-3.5 text-center bg-slate-800 text-slate-200">Total Sesiones</th>
+              </tr>
+            </thead>
+            <tbody id="sessions-monitor-tbody" class="divide-y divide-slate-800/50">
+              <!-- Dynamic rows -->
+            </tbody>
+          </table>
+        </div>
+        <!-- Pagination of sessions monitor -->
+        <div class="flex items-center justify-between mt-3 text-xs text-slate-400 px-1">
+          <span id="monitor-session-page-text">Pág. 1 de 1</span>
+          <div class="flex gap-1.5">
+            <button id="monitor-session-prev-btn" class="px-2.5 py-1 bg-slate-850 hover:bg-slate-800 border border-slate-800 rounded-lg disabled:opacity-50 transition">Anterior</button>
+            <button id="monitor-session-next-btn" class="px-2.5 py-1 bg-slate-850 hover:bg-slate-800 border border-slate-800 rounded-lg disabled:opacity-50 transition">Siguiente</button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- Footer of Page -->
+    <footer class="bg-slate-950 border-t border-slate-900 py-6 mt-12">
+      <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500 space-y-2">
+        <p>SIDER - Secretaría de Deporte y Recreación • Alcaldía de Santiago de Cali</p>
+        <p class="text-[10px]">Desarrollado con arquitectura interactiva de análisis geográfico y de datos multidimensionales.</p>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Notification Message Block -->
+  <div id="toast-message" class="fixed bottom-5 right-5 z-50 bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 flex items-center space-x-3 shadow-2xl transition transform translate-y-20 opacity-0 pointer-events-none duration-300">
+    <div id="toast-icon-bg" class="p-2 rounded-lg bg-sky-950 text-sky-400">
+      <i id="toast-icon" class="fa-solid fa-info"></i>
+    </div>
+    <div>
+      <h4 id="toast-title" class="text-xs font-bold text-slate-200">Mensaje</h4>
+      <p id="toast-body" class="text-[11px] text-slate-400 mt-0.5">Cuerpo del mensaje...</p>
+    </div>
+  </div>
+
+  <!-- JS Logic Core -->
+  <script>
+    // State management for raw records, parsed records and filters
+    let rawRecords = [];
+    let processedRecords = [];
+    let currentFilters = {
+      commune: null,
+      program: null,
+      monitor: null,
+      discipline: null
+    };
+
+    // Pagination states
+    let monitorGroupPage = 1;
+    const monitorGroupLimit = 10;
+    let monitorGroupFilteredList = [];
+
+    let monitorSessionPage = 1;
+    const monitorSessionLimit = 10;
+    let monitorSessionFilteredList = [];
+
+    // Global references for Charts & Leaflet Map
+    let leafletMap = null;
+    let mapMarkersLayer = null;
+    let communeChartInstance = null;
+    let disciplinesChartInstance = null;
+    let communeChartMetric = 'groups'; // 'groups' or 'sessions'
+
+    // Centroids for Cali's Communes (1 to 22) + Rural
+    const COMMUNE_COORDINATES = {
+      "1": { lat: 3.4550, lng: -76.5650, name: "Comuna 1" },
+      "2": { lat: 3.4750, lng: -76.5250, name: "Comuna 2" },
+      "3": { lat: 3.4500, lng: -76.5350, name: "Comuna 3" },
+      "4": { lat: 3.4650, lng: -76.5100, name: "Comuna 4" },
+      "5": { lat: 3.4850, lng: -76.5000, name: "Comuna 5" },
+      "6": { lat: 3.4900, lng: -76.4850, name: "Comuna 6" },
+      "7": { lat: 3.4700, lng: -76.4900, name: "Comuna 7" },
+      "8": { lat: 3.4500, lng: -76.5150, name: "Comuna 8" },
+      "9": { lat: 3.4420, lng: -76.5250, name: "Comuna 9" },
+      "10": { lat: 3.4250, lng: -76.520, name: "Comuna 10" },
+      "11": { lat: 3.4200, lng: -76.510, name: "Comuna 11" },
+      "12": { lat: 3.4350, lng: -76.500, name: "Comuna 12" },
+      "13": { lat: 3.4200, lng: -76.485, name: "Comuna 13" },
+      "14": { lat: 3.4300, lng: -76.475, name: "Comuna 14" },
+      "15": { lat: 3.4100, lng: -76.485, name: "Comuna 15" },
+      "16": { lat: 3.4100, lng: -76.505, name: "Comuna 16" },
+      "17": { lat: 3.3900, lng: -76.530, name: "Comuna 17" },
+      "18": { lat: 3.3850, lng: -76.555, name: "Comuna 18" },
+      "19": { lat: 3.4200, lng: -76.545, name: "Comuna 19" },
+      "20": { lat: 3.4250, lng: -76.560, name: "Comuna 20" },
+      "21": { lat: 3.4450, lng: -76.465, name: "Comuna 21" },
+      "22": { lat: 3.3550, lng: -76.535, name: "Comuna 22" },
+      "Rural": { lat: 3.3800, lng: -76.600, name: "Zona Rural" }
+    };
+
+    // Color schema for the programs
+    const PROGRAM_COLORS = {
+      "ActivaMente": "#ef4444", // Red
+      "Canas y Ganas": "#f59e0b", // Amber
+      "Cuerpo y Mente": "#10b981", // Emerald
+      "Cali Juega": "#3b82f6", // Blue
+      "Semilleros": "#8b5cf6", // Purple
+      "Deporte Comunitario": "#06b6d4" // Cyan
+    };
+    const DEFAULT_COLOR = "#6b7280"; // Gray
+
+    // DOM Elements
+    const dropZone = document.getElementById('drop-zone');
+    const csvFileInput = document.getElementById('csv-file-input');
+    const uploadStatus = document.getElementById('upload-status');
+    const welcomeContainer = document.getElementById('welcome-container');
+    const dashboardContainer = document.getElementById('dashboard-container');
+    const loadDemoBtn = document.getElementById('load-demo-btn');
+    const loadDemoWelcomeBtn = document.getElementById('load-demo-welcome-btn');
+    const triggerUploadBtn = document.getElementById('trigger-upload-btn');
+    const resetFiltersBtn = document.getElementById('reset-filters-btn');
+    const activeFiltersBar = document.getElementById('active-filters-bar');
+    const filterBadges = document.getElementById('filter-badges');
+
+    // Toast notifications
+    function showToast(title, body, type = 'info') {
+      const toast = document.getElementById('toast-message');
+      const toastTitle = document.getElementById('toast-title');
+      const toastBody = document.getElementById('toast-body');
+      const toastIcon = document.getElementById('toast-icon');
+      const iconBg = document.getElementById('toast-icon-bg');
+
+      toastTitle.innerText = title;
+      toastBody.innerText = body;
+
+      // Color scheme for toasts
+      if (type === 'success') {
+        iconBg.className = "p-2 rounded-lg bg-emerald-950 text-emerald-400";
+        toastIcon.className = "fa-solid fa-circle-check";
+      } else if (type === 'error') {
+        iconBg.className = "p-2 rounded-lg bg-rose-950 text-rose-400";
+        toastIcon.className = "fa-solid fa-circle-xmark";
+      } else {
+        iconBg.className = "p-2 rounded-lg bg-sky-950 text-sky-400";
+        toastIcon.className = "fa-solid fa-circle-info";
+      }
+
+      toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+      }, 4000);
+    }
+
+    // Initialize Map on Cali coordinates
+    function initMap() {
+      if (leafletMap) return;
+      leafletMap = L.map('map', {
+        zoomControl: true,
+        scrollWheelZoom: true
+      }).setView([3.4206, -76.5222], 12); // Panned centered in Cali
+
+      // Beautiful custom dark/neutral style map tiles
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 20
+      }).addTo(leafletMap);
+
+      mapMarkersLayer = L.layerGroup().addTo(leafletMap);
+    }
+
+    // Set up file readers
+    triggerUploadBtn.addEventListener('click', () => csvFileInput.click());
+    dropZone.addEventListener('click', () => csvFileInput.click());
+
+    // Drag-and-drop actions
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropZone.classList.add('border-sky-500', 'bg-slate-900/60');
+      }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('border-sky-500', 'bg-slate-900/60');
+      }, false);
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      if (files.length) handleFile(files[0]);
+    });
+
+    csvFileInput.addEventListener('change', (e) => {
+      if (e.target.files.length) handleFile(e.target.files[0]);
+    });
+
+    loadDemoBtn.addEventListener('click', loadDemoData);
+    loadDemoWelcomeBtn.addEventListener('click', loadDemoData);
+    resetFiltersBtn.addEventListener('click', clearAllFilters);
+
+    document.getElementById('chart-metric-groups').addEventListener('click', () => {
+      toggleCommuneChartMetric('groups');
+    });
+    document.getElementById('chart-metric-sessions').addEventListener('click', () => {
+      toggleCommuneChartMetric('sessions');
+    });
+
+    // Set up Global Select Filter Listeners (Visible All The Time)
+    document.getElementById('filter-select-commune').addEventListener('change', (e) => {
+      const val = e.target.value;
+      currentFilters.commune = val === 'all' ? null : val;
+      applyFilters();
+      if (currentFilters.commune && leafletMap) {
+        const targetCoords = COMMUNE_COORDINATES[currentFilters.commune];
+        if (targetCoords) {
+          leafletMap.flyTo([targetCoords.lat, targetCoords.lng], 14, { animate: true, duration: 1.2 });
+        }
+      }
+    });
+
+    document.getElementById('filter-select-program').addEventListener('change', (e) => {
+      const val = e.target.value;
+      currentFilters.program = val === 'all' ? null : val;
+      applyFilters();
+    });
+
+    document.getElementById('filter-select-discipline').addEventListener('change', (e) => {
+      const val = e.target.value;
+      currentFilters.discipline = val === 'all' ? null : val;
+      applyFilters();
+    });
+
+    // Helper functions for CSV cell cleaning
+    function parseDaySession(val) {
+      if (!val) return false;
+      const clean = val.toString().trim().toLowerCase();
+      return clean !== "" && clean !== "no" && clean !== "no aplica" && clean !== "-";
+    }
+
+    // Process uploaded file
+    function handleFile(file) {
+      uploadStatus.innerText = "Cargando archivo...";
+      Papa.parse(file, {
+        header: true,
+        delimiter: ";", // Match SIDER standard CSV delimiter
+        skipEmptyLines: true,
+        complete: function(results) {
+          if (results.errors.length > 0) {
+            console.warn("Hubo algunas alertas al procesar el archivo CSV:", results.errors);
+          }
+          if (results.data && results.data.length > 0) {
+            processRawCSVData(results.data);
+            showToast("Éxito", `Archivo cargado correctamente. ${results.data.length} filas leídas.`, "success");
+            uploadStatus.innerText = file.name;
+          } else {
+            showToast("Error", "El archivo CSV está vacío o no contiene el formato esperado.", "error");
+            uploadStatus.innerText = "Arrastra tu CSV aquí o haz clic";
+          }
+        },
+        error: function(err) {
+          showToast("Error", "No se pudo leer el archivo CSV.", "error");
+          uploadStatus.innerText = "Arrastra tu CSV aquí o haz clic";
+        }
+      });
+    }
+
+    // Custom deterministic jittering so that markers for sites in the same commune distribute nicely
+    function getDeterministicCoords(communeKey, siteName, index) {
+      const base = COMMUNE_COORDINATES[communeKey] || COMMUNE_COORDINATES["Rural"];
+      
+      // Compute simple hash from siteName
+      let hash = 0;
+      const nameStr = siteName ? siteName.toString() : "sin_nombre";
+      for (let i = 0; i < nameStr.length; i++) {
+        hash = nameStr.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      
+      // Calculate circle position around center
+      const angle = (Math.abs(hash) % 360) * (Math.PI / 180);
+      // Small distance offset: 150m up to 1km radius
+      const multiplier = 0.0015 + ((Math.abs(hash) % 10) * 0.00085);
+      
+      return {
+        lat: base.lat + Math.cos(angle) * multiplier,
+        lng: base.lng + Math.sin(angle) * multiplier
+      };
+    }
+
+    // Transform raw CSV lines to strong objects
+    function processRawCSVData(data) {
+      rawRecords = data.map((row, idx) => {
+        // Clean program and monitor names
+        let prog = row['programa'] ? row['programa'].trim() : 'Otro';
+        if (prog === "" || prog === "-" || prog.toLowerCase() === "no aplica") prog = 'Otro';
+
+        let monitorName = row['MONITOR'] ? row['MONITOR'].trim() : 'SIN MONITOR';
+        if (monitorName === "" || monitorName === "-") monitorName = 'SIN MONITOR';
+        monitorName = monitorName.toUpperCase();
+
+        let comVal = row['nombre_comuna'] ? row['nombre_comuna'].toString().trim() : 'Rural';
+        let cleanCommune = "Rural";
+        const numMatch = comVal.match(/\d+/);
+        if (numMatch) {
+          const num = parseInt(numMatch[0]);
+          if (num >= 1 && num <= 22) {
+            cleanCommune = num.toString();
+          }
+        } else if (comVal.toLowerCase().includes('rural') || comVal.toLowerCase().includes('corregimiento') || row['corregimiento']) {
+          cleanCommune = "Rural";
+        }
+
+        const sessions = {
+          Lunes: parseDaySession(row['Lunes']),
+          Martes: parseDaySession(row['Martes']),
+          Miercoles: parseDaySession(row['Miercoles']),
+          Jueves: parseDaySession(row['Jueves']),
+          Viernes: parseDaySession(row['Viernes']),
+          sabado: parseDaySession(row['sabado']),
+          Domingo: parseDaySession(row['Domingo'])
+        };
+
+        const totalSessions = Object.values(sessions).filter(Boolean).length;
+        const discipline = row['disciplina_y_o_actividad'] ? row['disciplina_y_o_actividad'].trim().toUpperCase() : 'NO ESPECIFICADA';
+
+        const site = row['sitio_atencion'] ? row['sitio_atencion'].trim() : 'Sin Punto Fijo';
+        const address = row['direccion_sitio_atencion'] ? row['direccion_sitio_atencion'].trim() : 'Dirección No Suministrada';
+        const neighborhood = row['nombre_barrio'] ? row['nombre_barrio'].trim() : 'Cali';
+
+        return {
+          id: idx,
+          commune: cleanCommune,
+          communeLabel: cleanCommune === "Rural" ? "Zona Rural" : `Comuna ${cleanCommune}`,
+          neighborhood: neighborhood,
+          site: site,
+          address: address,
+          discipline: discipline === "" ? 'OTRA' : discipline,
+          sessions: sessions,
+          totalSessions: totalSessions,
+          program: prog,
+          monitor: monitorName,
+          groupName: row['nombre grupo'] ? row['nombre grupo'].trim() : `Grupo_${idx + 1}`
+        };
+      });
+
+      // Filter out records that are completely blank or have no valid info
+      rawRecords = rawRecords.filter(r => r.program !== 'Otro' || r.monitor !== 'SIN MONITOR' || r.totalSessions > 0);
+
+      // Transition screen from Welcome to Dashboard
+      welcomeContainer.classList.add('hidden');
+      dashboardContainer.classList.remove('hidden');
+
+      // Refresh analytical dashboard and populate permanent dropdown filters
+      initMap();
+      populateFilterDropdowns();
+      clearAllFilters();
+    }
+
+    // Dynamic population of the visible Global Dropdowns from current records
+    function populateFilterDropdowns() {
+      const communeSelect = document.getElementById('filter-select-commune');
+      const programSelect = document.getElementById('filter-select-program');
+      const disciplineSelect = document.getElementById('filter-select-discipline');
+
+      // 1. Communes Options
+      communeSelect.innerHTML = '<option value="all">Todas las Comunas (23 territorios)</option>';
+      for (let i = 1; i <= 22; i++) {
+        const option = document.createElement('option');
+        option.value = i.toString();
+        option.innerText = `Comuna ${i}`;
+        communeSelect.appendChild(option);
+      }
+      const ruralOption = document.createElement('option');
+      ruralOption.value = 'Rural';
+      ruralOption.innerText = 'Zona Rural';
+      communeSelect.appendChild(ruralOption);
+
+      // 2. SIDER Programs Options (Extracted from CSV)
+      const programs = Array.from(new Set(rawRecords.map(r => r.program))).filter(Boolean).sort();
+      programSelect.innerHTML = '<option value="all">Todos los Programas</option>';
+      programs.forEach(prog => {
+        const option = document.createElement('option');
+        option.value = prog;
+        option.innerText = prog;
+        programSelect.appendChild(option);
+      });
+
+      // 3. Disciplines Options (Extracted from CSV)
+      const disciplines = Array.from(new Set(rawRecords.map(r => r.discipline))).filter(Boolean).sort();
+      disciplineSelect.innerHTML = '<option value="all">Todas las Disciplinas</option>';
+      disciplines.forEach(disc => {
+        const option = document.createElement('option');
+        option.value = disc;
+        option.innerText = disc;
+        disciplineSelect.appendChild(option);
+      });
+    }
+
+    // Refresh everything based on active filters
+    function applyFilters() {
+      // Filter raw records
+      processedRecords = rawRecords.filter(r => {
+        if (currentFilters.commune && r.commune !== currentFilters.commune) return false;
+        if (currentFilters.program && r.program !== currentFilters.program) return false;
+        if (currentFilters.monitor && r.monitor !== currentFilters.monitor) return false;
+        if (currentFilters.discipline && r.discipline !== currentFilters.discipline) return false;
+        return true;
+      });
+
+      // Synchronize the dropdown selectors values so they always represent current state
+      document.getElementById('filter-select-commune').value = currentFilters.commune || 'all';
+      document.getElementById('filter-select-program').value = currentFilters.program || 'all';
+      document.getElementById('filter-select-discipline').value = currentFilters.discipline || 'all';
+
+      // Update active filter indicators in UI
+      updateFilterBarUI();
+
+      // Recalculate KPIs
+      updateKPIs();
+
+      // Redraw charts
+      renderCommuneChart();
+      renderDisciplinesChart();
+
+      // Redraw pivot tables
+      renderGroupsByProgramTable();
+      renderSessionsDayByProgramTable();
+      
+      // Populate monitor tables lists and reset pages
+      initMonitorTables();
+
+      // Refresh Map Markers
+      renderMapMarkers();
+    }
+
+    function updateKPIs() {
+      const groupsSet = new Set(processedRecords.map(r => r.groupName));
+      const totalSessions = processedRecords.reduce((acc, r) => acc + r.totalSessions, 0);
+      const monitorsSet = new Set(processedRecords.map(r => r.monitor));
+      const communesSet = new Set(processedRecords.map(r => r.commune));
+      const disciplinesSet = new Set(processedRecords.map(r => r.discipline));
+      const scenariosSet = new Set(processedRecords.map(r => r.site).filter(s => s && s !== 'Sin Punto Fijo'));
+
+      document.getElementById('kpi-groups').innerText = groupsSet.size.toLocaleString();
+      document.getElementById('kpi-sessions').innerText = totalSessions.toLocaleString();
+      document.getElementById('kpi-monitors').innerText = monitorsSet.size.toLocaleString();
+      document.getElementById('kpi-communes').innerText = communesSet.size.toLocaleString();
+      document.getElementById('kpi-disciplines').innerText = disciplinesSet.size.toLocaleString();
+      document.getElementById('kpi-scenarios').innerText = scenariosSet.size.toLocaleString();
+    }
+
+    function updateFilterBarUI() {
+      filterBadges.innerHTML = '';
+      let hasFilters = false;
+
+      Object.entries(currentFilters).forEach(([key, val]) => {
+        if (val) {
+          hasFilters = true;
+          let label = val;
+          if (key === 'commune') label = val === 'Rural' ? 'Zona Rural' : `Comuna ${val}`;
+          
+          const badge = document.createElement('span');
+          badge.className = "inline-flex items-center gap-1 bg-sky-900/80 text-sky-200 px-2.5 py-1 rounded-md text-[11px] font-medium border border-sky-700/60 shadow-sm";
+          badge.innerHTML = `
+            <span><strong>${key.toUpperCase()}:</strong> ${label}</span>
+            <button class="hover:text-rose-400 focus:outline-none ml-1 font-bold text-xs" onclick="removeSpecificFilter('${key}')">×</button>
+          `;
+          filterBadges.appendChild(badge);
+        }
+      });
+
+      if (hasFilters) {
+        resetFiltersBtn.classList.remove('hidden');
+        activeFiltersBar.classList.remove('hidden');
+      } else {
+        resetFiltersBtn.classList.add('hidden');
+        activeFiltersBar.classList.add('hidden');
+      }
+    }
+
+    window.removeSpecificFilter = function(filterKey) {
+      currentFilters[filterKey] = null;
+      applyFilters();
+    };
+
+    function clearAllFilters() {
+      currentFilters = {
+        commune: null,
+        program: null,
+        monitor: null,
+        discipline: null
+      };
+      applyFilters();
+    }
+
+    // Toggle Commune chart metric
+    function toggleCommuneChartMetric(metric) {
+      communeChartMetric = metric;
+      const btnGroups = document.getElementById('chart-metric-groups');
+      const btnSessions = document.getElementById('chart-metric-sessions');
+
+      if (metric === 'groups') {
+        btnGroups.className = "px-3 py-1.5 text-xs font-bold rounded-md bg-sky-500 text-slate-950 transition duration-150";
+        btnSessions.className = "px-3 py-1.5 text-xs font-bold rounded-md text-slate-400 hover:text-slate-200 transition duration-150";
+      } else {
+        btnSessions.className = "px-3 py-1.5 text-xs font-bold rounded-md bg-sky-500 text-slate-950 transition duration-150";
+        btnGroups.className = "px-3 py-1.5 text-xs font-bold rounded-md text-slate-400 hover:text-slate-200 transition duration-150";
+      }
+
+      renderCommuneChart();
+    }
+
+    // 1. BAR CHART BY COMMUNE (Vertical Layout, 23 Communes)
+    function renderCommuneChart() {
+      const ctx = document.getElementById('communeChart').getContext('2d');
+
+      const communeTotals = {};
+      for (let i = 1; i <= 22; i++) {
+        communeTotals[i.toString()] = 0;
+      }
+      communeTotals["Rural"] = 0;
+
+      processedRecords.forEach(r => {
+        if (communeTotals[r.commune] !== undefined) {
+          if (communeChartMetric === 'groups') {
+            communeTotals[r.commune] += 1;
+          } else {
+            communeTotals[r.commune] += r.totalSessions;
+          }
+        }
+      });
+
+      const labels = [];
+      const dataValues = [];
+      const keys = [];
+
+      for (let i = 1; i <= 22; i++) {
+        const k = i.toString();
+        labels.push(`C ${k}`);
+        dataValues.push(communeTotals[k]);
+        keys.push(k);
+      }
+      labels.push("Rural");
+      dataValues.push(communeTotals["Rural"]);
+      keys.push("Rural");
+
+      if (communeChartInstance) {
+        communeChartInstance.destroy();
+      }
+
+      const isGroups = communeChartMetric === 'groups';
+
+      communeChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: isGroups ? 'Número de Grupos' : 'Número de Sesiones Semanales',
+            data: dataValues,
+            backgroundColor: isGroups ? 'rgba(56, 189, 248, 0.75)' : 'rgba(129, 140, 248, 0.75)',
+            borderColor: isGroups ? '#38bdf8' : '#818cf8',
+            borderWidth: 1.5,
+            borderRadius: 4,
+            hoverBackgroundColor: isGroups ? '#38bdf8' : '#818cf8'
+          }]
+        },
+        plugins: [ChartDataLabels],
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          indexAxis: 'x', // VERTICAL LAYOUT
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              backgroundColor: '#0f172a',
+              titleColor: '#f8fafc',
+              bodyColor: '#cbd5e1',
+              borderColor: '#334155',
+              borderWidth: 1,
+              cornerRadius: 8,
+              padding: 10,
+              callbacks: {
+                title: function(tooltipItems) {
+                  const index = tooltipItems[0].dataIndex;
+                  return keys[index] === "Rural" ? "Zona Rural" : `Comuna ${keys[index]}`;
+                }
+              }
+            },
+            datalabels: {
+              anchor: 'end',
+              align: 'top',
+              color: '#94a3b8',
+              offset: 4,
+              font: {
+                family: 'system-ui',
+                weight: 'bold',
+                size: 9.5
+              },
+              formatter: function(value) {
+                return value > 0 ? value.toLocaleString() : '';
+              }
+            }
+          },
+          scales: {
+            y: {
+              grid: {
+                color: '#1e293b'
+              },
+              ticks: {
+                color: '#64748b',
+                font: { size: 9.5 }
+              },
+              border: {
+                dash: [4, 4]
+              }
+            },
+            x: {
+              grid: {
+                display: false
+              },
+              ticks: {
+                color: '#cbd5e1',
+                font: { size: 10 },
+                autoSkip: false
+              }
+            }
+          },
+          onClick: (event, activeElements) => {
+            if (activeElements.length > 0) {
+              const dataIndex = activeElements[0].index;
+              const selectedCommuneKey = keys[dataIndex];
+              currentFilters.commune = selectedCommuneKey;
+              applyFilters();
+              
+              const targetCoords = COMMUNE_COORDINATES[selectedCommuneKey];
+              if (targetCoords && leafletMap) {
+                leafletMap.flyTo([targetCoords.lat, targetCoords.lng], 14, { animate: true, duration: 1.2 });
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // 2. CHART OF TOP 20 DISCIPLINES (Horizontal Chart)
+    function renderDisciplinesChart() {
+      const ctx = document.getElementById('disciplinesChart').getContext('2d');
+
+      const disciplineMap = {};
+      processedRecords.forEach(r => {
+        disciplineMap[r.discipline] = (disciplineMap[r.discipline] || 0) + 1;
+      });
+
+      const sorted = Object.entries(disciplineMap)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 20);
+
+      const labels = sorted.map(item => item[0]);
+      const values = sorted.map(item => item[1]);
+
+      if (disciplinesChartInstance) {
+        disciplinesChartInstance.destroy();
+      }
+
+      disciplinesChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: values,
+            backgroundColor: 'rgba(52, 211, 153, 0.75)',
+            borderColor: '#34d399',
+            borderWidth: 1.5,
+            borderRadius: 4,
+            hoverBackgroundColor: '#34d399'
+          }]
+        },
+        plugins: [ChartDataLabels],
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          indexAxis: 'y', // Horizontal bars for text readability
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              backgroundColor: '#0f172a',
+              titleColor: '#f8fafc',
+              bodyColor: '#cbd5e1',
+              borderColor: '#334155',
+              borderWidth: 1,
+              cornerRadius: 8
+            },
+            datalabels: {
+              anchor: 'end',
+              align: 'right',
+              color: '#94a3b8',
+              offset: 4,
+              font: {
+                weight: 'semibold',
+                size: 9
+              },
+              formatter: function(value) {
+                return value.toLocaleString();
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: {
+                color: '#1e293b'
+              },
+              ticks: {
+                color: '#64748b',
+                font: { size: 9 }
+              },
+              border: {
+                dash: [4, 4]
+              }
+            },
+            y: {
+              grid: {
+                display: false
+              },
+              ticks: {
+                color: '#cbd5e1',
+                font: { size: 9 }
+              }
+            }
+          },
+          onClick: (event, activeElements) => {
+            if (activeElements.length > 0) {
+              const dataIndex = activeElements[0].index;
+              const selectedDiscipline = labels[dataIndex];
+              currentFilters.discipline = selectedDiscipline;
+              applyFilters();
+            }
+          }
+        }
+      });
+    }
+
+    // 3. TABLE DINAMICA: NRO GRUPOS POR PROGRAMA
+    function renderGroupsByProgramTable() {
+      const tbody = document.getElementById('groups-program-tbody');
+      tbody.innerHTML = '';
+
+      const programMap = {};
+      let grandTotal = 0;
+
+      processedRecords.forEach(r => {
+        programMap[r.program] = (programMap[r.program] || 0) + 1;
+        grandTotal++;
+      });
+
+      const sorted = Object.entries(programMap).sort((a, b) => b[1] - a[1]);
+
+      if (sorted.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-slate-500 italic">No hay registros coincidentes</td></tr>`;
+        return;
+      }
+
+      sorted.forEach(([program, count]) => {
+        const percentage = grandTotal > 0 ? ((count / grandTotal) * 100).toFixed(1) : 0;
+        const color = PROGRAM_COLORS[program] || DEFAULT_COLOR;
+
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-900/60 transition cursor-pointer";
+        tr.onclick = () => {
+          currentFilters.program = program;
+          applyFilters();
+        };
+
+        tr.innerHTML = `
+          <td class="p-3.5 font-medium text-slate-200 flex items-center space-x-2">
+            <span class="w-2 h-2 rounded-full inline-block shrink-0" style="background-color: ${color}"></span>
+            <span>${program}</span>
+          </td>
+          <td class="p-3.5 text-center text-slate-300 font-semibold">${count.toLocaleString()}</td>
+          <td class="p-3.5 text-right">
+            <div class="flex items-center justify-end space-x-2">
+              <span class="text-slate-400 font-mono text-[11px]">${percentage}%</span>
+              <div class="w-16 bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                <div class="h-full rounded-full" style="width: ${percentage}%; background-color: ${color}"></div>
+              </div>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // 4. TABLE DINAMICA: SESSIONS BY DAY PER PROGRAM
+    function renderSessionsDayByProgramTable() {
+      const tbody = document.getElementById('sessions-day-program-tbody');
+      tbody.innerHTML = '';
+
+      const programMap = {};
+      processedRecords.forEach(r => {
+        if (!programMap[r.program]) {
+          programMap[r.program] = {
+            Lunes: 0, Martes: 0, Miercoles: 0, Jueves: 0, Viernes: 0, sabado: 0, Domingo: 0, Total: 0
+          };
+        }
+
+        const p = programMap[r.program];
+        if (r.sessions.Lunes) { p.Lunes++; p.Total++; }
+        if (r.sessions.Martes) { p.Martes++; p.Total++; }
+        if (r.sessions.Miercoles) { p.Miercoles++; p.Total++; }
+        if (r.sessions.Jueves) { p.Jueves++; p.Total++; }
+        if (r.sessions.Viernes) { p.Viernes++; p.Total++; }
+        if (r.sessions.sabado) { p.sabado++; p.Total++; }
+        if (r.sessions.Domingo) { p.Domingo++; p.Total++; }
+      });
+
+      const sorted = Object.entries(programMap).sort((a, b) => b[1].Total - a[1].Total);
+
+      if (sorted.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-slate-500 italic">No hay registros coincidentes</td></tr>`;
+        return;
+      }
+
+      function getIntensityClass(val, max) {
+        if (val === 0) return '';
+        const ratio = val / max;
+        if (ratio > 0.8) return 'intensity-max';
+        if (ratio > 0.5) return 'intensity-high';
+        if (ratio > 0.25) return 'intensity-medium';
+        return 'intensity-low';
+      }
+
+      let maxValue = 1;
+      sorted.forEach(([_, days]) => {
+        const rowMax = Math.max(days.Lunes, days.Martes, days.Miercoles, days.Jueves, days.Viernes, days.sabado, days.Domingo);
+        if (rowMax > maxValue) maxValue = rowMax;
+      });
+
+      sorted.forEach(([program, days]) => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-900/60 transition cursor-pointer";
+        tr.onclick = () => {
+          currentFilters.program = program;
+          applyFilters();
+        };
+
+        tr.innerHTML = `
+          <td class="p-3.5 font-medium text-slate-200 flex items-center space-x-2">
+            <span class="w-2 h-2 rounded-full inline-block shrink-0" style="background-color: ${PROGRAM_COLORS[program] || DEFAULT_COLOR}"></span>
+            <span>${program}</span>
+          </td>
+          <td class="p-3.5 text-center text-slate-300 font-medium transition ${getIntensityClass(days.Lunes, maxValue)}">${days.Lunes.toLocaleString()}</td>
+          <td class="p-3.5 text-center text-slate-300 font-medium transition ${getIntensityClass(days.Martes, maxValue)}">${days.Martes.toLocaleString()}</td>
+          <td class="p-3.5 text-center text-slate-300 font-medium transition ${getIntensityClass(days.Miercoles, maxValue)}">${days.Miercoles.toLocaleString()}</td>
+          <td class="p-3.5 text-center text-slate-300 font-medium transition ${getIntensityClass(days.Jueves, maxValue)}">${days.Jueves.toLocaleString()}</td>
+          <td class="p-3.5 text-center text-slate-300 font-medium transition ${getIntensityClass(days.Viernes, maxValue)}">${days.Viernes.toLocaleString()}</td>
+          <td class="p-3.5 text-center text-slate-300 font-medium transition ${getIntensityClass(days.sabado, maxValue)}">${days.sabado.toLocaleString()}</td>
+          <td class="p-3.5 text-center text-slate-300 font-medium transition ${getIntensityClass(days.Domingo, maxValue)}">${days.Domingo.toLocaleString()}</td>
+          <td class="p-3.5 text-center text-slate-50 font-bold bg-slate-900/80 border-l border-slate-800/80">${days.Total.toLocaleString()}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Consolidated init function for dynamic monitor list tables
+    function initMonitorTables() {
+      // Monitor list for Groups
+      const groupSearchVal = document.getElementById('monitor-group-search').value.toUpperCase();
+      const monitorGroupMap = {};
+
+      processedRecords.forEach(r => {
+        if (!monitorGroupMap[r.monitor]) {
+          monitorGroupMap[r.monitor] = {
+            monitorName: r.monitor,
+            groups: new Set(),
+            programs: new Set(),
+            communes: new Set()
+          };
+        }
+        monitorGroupMap[r.monitor].groups.add(r.groupName);
+        monitorGroupMap[r.monitor].programs.add(r.program);
+        monitorGroupMap[r.monitor].communes.add(r.communeLabel);
+      });
+
+      monitorGroupFilteredList = Object.values(monitorGroupMap)
+        .map(m => ({
+          monitorName: m.monitorName,
+          groupsCount: m.groups.size,
+          programs: Array.from(m.programs).join(', '),
+          communes: m.communes.size
+        }))
+        .filter(m => m.monitorName.includes(groupSearchVal))
+        .sort((a, b) => b.groupsCount - a.groupsCount);
+
+      monitorGroupPage = 1;
+      renderMonitorGroupTablePage();
+
+      // Monitor list for Sessions
+      const sessionSearchVal = document.getElementById('monitor-session-search').value.toUpperCase();
+      const monitorSessionMap = {};
+
+      processedRecords.forEach(r => {
+        if (!monitorSessionMap[r.monitor]) {
+          monitorSessionMap[r.monitor] = {
+            monitorName: r.monitor,
+            Lunes: 0, Martes: 0, Miercoles: 0, Jueves: 0, Viernes: 0, sabado: 0, Domingo: 0, Total: 0
+          };
+        }
+
+        const m = monitorSessionMap[r.monitor];
+        if (r.sessions.Lunes) { m.Lunes++; m.Total++; }
+        if (r.sessions.Martes) { m.Martes++; m.Total++; }
+        if (r.sessions.Miercoles) { m.Miercoles++; m.Total++; }
+        if (r.sessions.Jueves) { m.Jueves++; m.Total++; }
+        if (r.sessions.Viernes) { m.Viernes++; m.Total++; }
+        if (r.sessions.sabado) { m.sabado++; m.Total++; }
+        if (r.sessions.Domingo) { m.Domingo++; m.Total++; }
+      });
+
+      monitorSessionFilteredList = Object.values(monitorSessionMap)
+        .filter(m => m.monitorName.includes(sessionSearchVal))
+        .sort((a, b) => b.Total - a.Total);
+
+      monitorSessionPage = 1;
+      renderMonitorSessionTablePage();
+    }
+
+    // 5. TABLE DINAMICA: GROUPS BY MONITOR WITH PAGINATION
+    function renderMonitorGroupTablePage() {
+      const tbody = document.getElementById('groups-monitor-tbody');
+      const pageText = document.getElementById('monitor-group-page-text');
+      const prevBtn = document.getElementById('monitor-group-prev-btn');
+      const nextBtn = document.getElementById('monitor-group-next-btn');
+
+      tbody.innerHTML = '';
+
+      const totalItems = monitorGroupFilteredList.length;
+      const totalPages = Math.ceil(totalItems / monitorGroupLimit) || 1;
+
+      if (monitorGroupPage < 1) monitorGroupPage = 1;
+      if (monitorGroupPage > totalPages) monitorGroupPage = totalPages;
+
+      prevBtn.disabled = monitorGroupPage === 1;
+      nextBtn.disabled = monitorGroupPage === totalPages;
+      pageText.innerText = `Pág. ${monitorGroupPage} de ${totalPages} (${totalItems} Monitores)`;
+
+      const start = (monitorGroupPage - 1) * monitorGroupLimit;
+      const end = start + monitorGroupLimit;
+      const pagedItems = monitorGroupFilteredList.slice(start, end);
+
+      if (pagedItems.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-500 italic">No hay registros coincidentes</td></tr>`;
+        return;
+      }
+
+      pagedItems.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-900/60 transition cursor-pointer";
+        tr.onclick = () => {
+          currentFilters.monitor = item.monitorName;
+          applyFilters();
+        };
+
+        tr.innerHTML = `
+          <td class="p-3.5 font-bold text-slate-200">
+            <i class="fa-solid fa-user text-[10px] text-sky-400 mr-1.5"></i> ${item.monitorName}
+          </td>
+          <td class="p-3.5 text-center text-sky-400 font-bold">${item.groupsCount}</td>
+          <td class="p-3.5 text-slate-400 max-w-xs truncate" title="${item.programs}">${item.programs}</td>
+          <td class="p-3.5 text-center text-slate-300 font-mono">${item.communes} Comunas</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // 6. TABLE DINAMICA: SESSIONS BY MONITOR WITH PAGINATION
+    function renderMonitorSessionTablePage() {
+      const tbody = document.getElementById('sessions-monitor-tbody');
+      const pageText = document.getElementById('monitor-session-page-text');
+      const prevBtn = document.getElementById('monitor-session-prev-btn');
+      const nextBtn = document.getElementById('monitor-session-next-btn');
+
+      tbody.innerHTML = '';
+
+      const totalItems = monitorSessionFilteredList.length;
+      const totalPages = Math.ceil(totalItems / monitorSessionLimit) || 1;
+
+      if (monitorSessionPage < 1) monitorSessionPage = 1;
+      if (monitorSessionPage > totalPages) monitorSessionPage = totalPages;
+
+      prevBtn.disabled = monitorSessionPage === 1;
+      nextBtn.disabled = monitorSessionPage === totalPages;
+      pageText.innerText = `Pág. ${monitorSessionPage} de ${totalPages} (${totalItems} Monitores)`;
+
+      const start = (monitorSessionPage - 1) * monitorSessionLimit;
+      const end = start + monitorSessionLimit;
+      const pagedItems = monitorSessionFilteredList.slice(start, end);
+
+      if (pagedItems.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-slate-500 italic">No hay registros coincidentes</td></tr>`;
+        return;
+      }
+
+      pagedItems.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-900/60 transition cursor-pointer";
+        tr.onclick = () => {
+          currentFilters.monitor = item.monitorName;
+          applyFilters();
+        };
+
+        tr.innerHTML = `
+          <td class="p-3.5 font-bold text-slate-200">
+            <i class="fa-solid fa-calendar-check text-[10px] text-indigo-400 mr-1.5"></i> ${item.monitorName}
+          </td>
+          <td class="p-3.5 text-center text-slate-400">${item.Lunes || '-'}</td>
+          <td class="p-3.5 text-center text-slate-400">${item.Martes || '-'}</td>
+          <td class="p-3.5 text-center text-slate-400">${item.Miercoles || '-'}</td>
+          <td class="p-3.5 text-center text-slate-400">${item.Jueves || '-'}</td>
+          <td class="p-3.5 text-center text-slate-400">${item.Viernes || '-'}</td>
+          <td class="p-3.5 text-center text-slate-400">${item.sabado || '-'}</td>
+          <td class="p-3.5 text-center text-slate-400">${item.Domingo || '-'}</td>
+          <td class="p-3.5 text-center text-indigo-300 font-bold bg-indigo-950/20">${item.Total}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Monitor table events listeners for live filtering
+    document.getElementById('monitor-group-search').addEventListener('input', () => {
+      initMonitorTables();
+    });
+    document.getElementById('monitor-group-prev-btn').addEventListener('click', () => {
+      if (monitorGroupPage > 1) {
+        monitorGroupPage--;
+        renderMonitorGroupTablePage();
+      }
+    });
+    document.getElementById('monitor-group-next-btn').addEventListener('click', () => {
+      const maxPages = Math.ceil(monitorGroupFilteredList.length / monitorGroupLimit);
+      if (monitorGroupPage < maxPages) {
+        monitorGroupPage++;
+        renderMonitorGroupTablePage();
+      }
+    });
+
+    document.getElementById('monitor-session-search').addEventListener('input', () => {
+      initMonitorTables();
+    });
+    document.getElementById('monitor-session-prev-btn').addEventListener('click', () => {
+      if (monitorSessionPage > 1) {
+        monitorSessionPage--;
+        renderMonitorSessionTablePage();
+      }
+    });
+    document.getElementById('monitor-session-next-btn').addEventListener('click', () => {
+      const maxPages = Math.ceil(monitorSessionFilteredList.length / monitorSessionLimit);
+      if (monitorSessionPage < maxPages) {
+        monitorSessionPage++;
+        renderMonitorSessionTablePage();
+      }
+    });
+
+    // 7. LEAFLET INTERACTIVE MAP: ATENCION SITES / VENUES
+    function renderMapMarkers() {
+      if (!leafletMap || !mapMarkersLayer) return;
+
+      mapMarkersLayer.clearLayers();
+
+      const sitesMap = {};
+      processedRecords.forEach(r => {
+        if (!r.site || r.site === 'Sin Punto Fijo') return;
+
+        if (!sitesMap[r.site]) {
+          sitesMap[r.site] = {
+            siteName: r.site,
+            address: r.address,
+            neighborhood: r.neighborhood,
+            commune: r.commune,
+            communeLabel: r.communeLabel,
+            programs: new Set(),
+            monitors: new Set(),
+            disciplines: new Set(),
+            groupsCount: 0,
+            sessionsCount: 0
+          };
+        }
+
+        const s = sitesMap[r.site];
+        s.programs.add(r.program);
+        s.monitors.add(r.monitor);
+        s.disciplines.add(r.discipline);
+        s.groupsCount++;
+        s.sessionsCount += r.totalSessions;
+      });
+
+      const sitesList = Object.values(sitesMap);
+
+      const sidebarSearchVal = document.getElementById('map-search').value.toLowerCase();
+      const sidebarListContainer = document.getElementById('map-site-list');
+      sidebarListContainer.innerHTML = '';
+
+      let markerCount = 0;
+      let matchedCount = 0;
+
+      sitesList.forEach((site, index) => {
+        const coords = getDeterministicCoords(site.commune, site.siteName, index);
+
+        const primaryProgram = Array.from(site.programs)[0] || "Otro";
+        const color = PROGRAM_COLORS[primaryProgram] || DEFAULT_COLOR;
+
+        const customMarker = L.circleMarker([coords.lat, coords.lng], {
+          radius: 7.5,
+          fillColor: color,
+          color: '#ffffff',
+          weight: 1.5,
+          opacity: 1,
+          fillOpacity: 0.95
+        });
+
+        const popupContent = `
+          <div class="p-1 space-y-2 max-w-[260px]">
+            <div class="flex items-start justify-between gap-1 border-b border-slate-700/60 pb-1.5">
+              <h4 class="font-bold text-xs text-sky-400 uppercase tracking-tight">${site.siteName}</h4>
+            </div>
+            <p class="text-[10px] text-slate-300 leading-tight">
+              <i class="fa-solid fa-map-pin text-rose-400 mr-1 text-[9px]"></i> 
+              <strong>Ubicación:</strong> ${site.address}, Barrio ${site.neighborhood} (${site.communeLabel})
+            </p>
+            <div class="grid grid-cols-2 gap-1.5 pt-1">
+              <div class="bg-slate-950 p-1 rounded border border-slate-800 text-center">
+                <span class="block text-[8px] uppercase font-bold text-slate-500">Grupos</span>
+                <span class="text-xs font-bold text-sky-400">${site.groupsCount}</span>
+              </div>
+              <div class="bg-slate-950 p-1 rounded border border-slate-800 text-center">
+                <span class="block text-[8px] uppercase font-bold text-slate-500">Sesiones / S</span>
+                <span class="text-xs font-bold text-indigo-400">${site.sessionsCount}</span>
+              </div>
+            </div>
+            <div class="pt-1.5 border-t border-slate-700/60 text-[9px] text-slate-400 space-y-0.5">
+              <div><strong>Programa:</strong> ${primaryProgram}</div>
+              <div class="truncate"><strong>Monitor:</strong> ${Array.from(site.monitors).join(', ')}</div>
+              <div class="truncate text-emerald-400"><strong>Actividades:</strong> ${Array.from(site.disciplines).join(', ')}</div>
+            </div>
+          </div>
+        `;
+
+        customMarker.bindPopup(popupContent, {
+          closeButton: false,
+          offset: L.point(0, -5)
+        });
+
+        customMarker.addTo(mapMarkersLayer);
+        markerCount++;
+
+        const isMatch = site.siteName.toLowerCase().includes(sidebarSearchVal) || 
+                        site.address.toLowerCase().includes(sidebarSearchVal) || 
+                        site.neighborhood.toLowerCase().includes(sidebarSearchVal);
+        
+        if (isMatch) {
+          matchedCount++;
+          const listBtn = document.createElement('button');
+          listBtn.className = "w-full text-left p-2.5 hover:bg-slate-900 rounded-xl transition text-[11px] flex items-center justify-between text-slate-300 hover:text-slate-100 group border border-transparent hover:border-slate-800";
+          listBtn.innerHTML = `
+            <div class="truncate max-w-[170px]">
+              <div class="font-semibold truncate group-hover:text-sky-400 flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full inline-block shrink-0" style="background-color: ${color}"></span>
+                ${site.siteName}
+              </div>
+              <div class="text-[9px] text-slate-500 truncate">${site.address}</div>
+            </div>
+            <span class="text-[9px] font-mono bg-slate-900 px-1.5 py-0.5 rounded text-slate-400 group-hover:bg-sky-950 group-hover:text-sky-300">
+              C${site.commune}
+            </span>
+          `;
+          
+          listBtn.onclick = () => {
+            leafletMap.flyTo([coords.lat, coords.lng], 16, { animate: true, duration: 1.5 });
+            customMarker.openPopup();
+          };
+
+          sidebarListContainer.appendChild(listBtn);
+        }
+      });
+
+      document.getElementById('map-matching-count').innerText = matchedCount;
+
+      if (markerCount > 0 && currentFilters.commune) {
+        const centroid = COMMUNE_COORDINATES[currentFilters.commune];
+        if (centroid) {
+          leafletMap.setView([centroid.lat, centroid.lng], 14);
+        }
+      }
+    }
+
+    // Bind map search box listener
+    document.getElementById('map-search').addEventListener('input', () => {
+      renderMapMarkers();
+    });
+
+    // 8. GENERATE PRE-EMBEDDED HIGH FIDELITY DEMO DATA FOR IMMEDIATE PREVIEW
+    function loadDemoData() {
+      const demoData = [];
+      const monitors = [
+        "PAULO PLAZA", "MARIA GOMEZ", "CARLOS LOPEZ", "JORGE ARIAS", "ANA MILENA",
+        "LUIS CHAVEZ", "DANIELA RUIZ", "MAURICIO MARIN", "ANDREA TOBAR", "VICTOR PINTO"
+      ];
+      const programs = [
+        "ActivaMente", "Canas y Ganas", "Cuerpo y Mente", "Cali Juega", "Semilleros", "Deporte Comunitario"
+      ];
+      const disciplines = [
+        "ACUATICA", "FUNCIONAL", "YOGA", "PILATES", "AEROBICOS", "FUTBOL", 
+        "BALONCESTO", "PATINAJE", "VOLEIBOL", "HIDROGIMNASIA", "ATLETISMO", "RECREACION ACTIVA"
+      ];
+      
+      const neighborhoods = [
+        "Terrón Colorado", "Granada", "San Antonio", "Salomia", "Chiminangos", "Floralia", 
+        "Alfonso López", "Las Américas", "Guayaquil", "Departamental", "San Carlos", 
+        "Nueva Floresta", "El Poblado", "Marroquín", "El Vallado", "Mariano Ramos", 
+        "Limonar", "Meléndez", "San Fernando", "Siloé", "Desepaz", "Ciudad Jardín", "Pance"
+      ];
+
+      const scenarios = [
+        "Unidad Recreativa Tory Castro", "Parque de la Música", "Parque del Perro", 
+        "Polideportivo Salomia", "Parque Chiminangos", "Centro Deportivo Floralia", 
+        "Cancha Alfonso López", "Polideportivo Las Américas", "Cancha de Guayaquil", 
+        "Parque Guabal", "Cancha San Carlos", "Polideportivo Nueva Floresta", 
+        "Cancha Poblado II", "Polideportivo Marroquín", "Cancha El Vallado", 
+        "Cancha Mariano Ramos", "Parque Limonar", "Polideportivo Meléndez", 
+        "Parque de las Banderas", "Cancha Siloé", "Polideportivo Desepaz", 
+        "Polideportivo Ciudad Jardín", "Ecoparque Pance"
+      ];
+
+      for (let i = 0; i < 180; i++) {
+        const commIndex = i % 23;
+        const communeNum = commIndex === 22 ? "Rural" : (commIndex + 1).toString();
+        
+        const monitorIdx = (i + commIndex) % monitors.length;
+        const progIdx = (i * 3) % programs.length;
+        const discIdx = (i * 7) % disciplines.length;
+        
+        const monitor = monitors[monitorIdx];
+        const program = programs[progIdx];
+        const discipline = disciplines[discIdx];
+        
+        const nbh = neighborhoods[commIndex];
+        const site = scenarios[commIndex];
+        const address = `Calle ${10 + (commIndex * 2)} # ${22 + (monitorIdx * 3)} - ${commIndex + 10}`;
+
+        const lun = (i % 3 === 0) ? "7:00 am" : "";
+        const mar = (i % 3 === 1) ? "8:30 am" : "";
+        const mie = (i % 3 === 0) ? "7:00 am" : "";
+        const jue = (i % 3 === 1) ? "8:30 am" : "";
+        const vie = (i % 4 === 0) ? "9:00 am" : "";
+        const sab = (i % 5 === 0) ? "10:00 am" : "";
+        const dom = (i % 7 === 0) ? "8:00 am" : "";
+
+        demoData.push({
+          "nombre_comuna": communeNum,
+          "nombre_barrio": nbh,
+          "zona": communeNum === "Rural" ? "Rural" : "Urbana",
+          "sitio_atencion": site,
+          "direccion_sitio_atencion": address,
+          "disciplina_y_o_actividad": discipline,
+          "Lunes": lun,
+          "Martes": mar,
+          "Miercoles": mie,
+          "Jueves": jue,
+          "Viernes": vie,
+          "sabado": sab,
+          "Domingo": dom,
+          "programa": program,
+          "MONITOR": monitor,
+          "nombre grupo": `${program.slice(0,3).toUpperCase()}-C${communeNum}-${monitor.replace(' ', '.')}-G0${(i % 3) + 1}`
+        });
+      }
+
+      processRawCSVData(demoData);
+      showToast("Datos Demo Cargados", "Dashboard poblado con datos deportivos simulados de Cali.", "success");
+      uploadStatus.innerText = "PARRILLA MAYO 31 2026 SIDER (Demo).csv";
+    }
+  </script>
+</body>
+</html>
